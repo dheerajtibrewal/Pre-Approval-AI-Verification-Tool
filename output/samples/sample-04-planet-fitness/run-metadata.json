@@ -1,0 +1,18 @@
+{
+  "application_id": "26d72b762b",
+  "category": "Health Club / Organizational Membership",
+  "provider_name": "Planet Fitness",
+  "item_name": "Classic Gym Membership",
+  "participant_name": "Rivka S.",
+  "source_website": "https://www.planetfitness.com/gyms",
+  "generated_at": "2026-07-15T15:51:15.846742+00:00",
+  "summary_counts": {
+    "found": 0,
+    "not_found": 0,
+    "needs_review": 3
+  },
+  "internal_items": 5,
+  "review_complete": false,
+  "research_note": null,
+  "validation_issues": []
+}

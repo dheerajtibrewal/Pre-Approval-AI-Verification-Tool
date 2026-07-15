@@ -1,0 +1,49 @@
+{
+  "application_id": "9796b8edf8",
+  "evidence": [
+    {
+      "evidence_id": "401981f7ee26ebc4",
+      "evidence_type": "targeted",
+      "label": "Evidence: open to the public",
+      "file": "evidence/criterion-open_to_public-401981f7ee26ebc4.png",
+      "url": "https://gallopnyc.org/recreational-riding",
+      "page_title": "Recreational Riding \u2014 GallopNYC",
+      "captured_at": "2026-07-15T15:55:05.795012+00:00",
+      "method": "firecrawl",
+      "supports_criteria": [
+        "open_to_public",
+        "not_clinical"
+      ]
+    },
+    {
+      "evidence_id": "864656a99c2365a8",
+      "evidence_type": "targeted",
+      "label": "Evidence: published fees",
+      "file": "evidence/criterion-published_fees-864656a99c2365a8.png",
+      "url": "https://gallopnyc.org/recreational-riding",
+      "page_title": "Recreational Riding \u2014 GallopNYC",
+      "captured_at": "2026-07-15T15:55:05.795012+00:00",
+      "method": "firecrawl",
+      "supports_criteria": [
+        "published_fees",
+        "fee_match"
+      ]
+    },
+    {
+      "evidence_id": "d6ff2e7766ad7dbf",
+      "evidence_type": "whole_page",
+      "label": "Full page as reviewed",
+      "file": "evidence/whole-page-community-classes-d6ff2e7766ad7dbf.png",
+      "url": "https://gallopnyc.org/recreational-riding",
+      "page_title": "Recreational Riding \u2014 GallopNYC",
+      "captured_at": "2026-07-15T15:55:05.795012+00:00",
+      "method": "firecrawl",
+      "supports_criteria": [
+        "fees_identical_opwdd",
+        "subject_based",
+        "no_college_credit",
+        "published_schedule"
+      ]
+    }
+  ]
+}

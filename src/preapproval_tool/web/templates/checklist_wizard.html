@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if draft_id or source_category_id %}Edit{% else %}Add{% endif %} Checklist Category</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+{% include "_style.html" %}
+<style>
+  .wrap { max-width: 820px; }
+  fieldset { border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; margin: 24px 0; }
+  legend { font-weight: 700; font-size: 15px; padding: 0 6px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 2px 0 12px; }
+  .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .row input[type=text], .row input[type=number], .row select, .row textarea {
+    font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+  }
+  .grow { flex: 1; min-width: 180px; }
+  .item-block {
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; background: var(--bg);
+  }
+  .radio-group label { display: block; font-size: 14px; margin: 4px 0; font-weight: 400; }
+  .indent { margin-left: 22px; margin-top: 8px; padding-left: 14px; border-left: 2px solid var(--border); }
+  textarea.q-text { width: 100%; min-height: 50px; }
+  .btn.small { padding: 6px 12px; font-size: 12.5px; }
+  #errors { display:none; }
+  #errors ul { margin: 8px 0 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero" style="padding-top:40px;">
+    <h1>{% if source_category_id %}Edit "{{ source_category_id }}"{% elif draft_id %}Edit draft{% else %}Add a new category{% endif %}</h1>
+    <div class="sub">Describe the form in plain language — no YAML or code needed.</div>
+  </header>
+
+  <div id="errors" class="warn-box"></div>
+
+  <form id="wizard-form" onsubmit="return false;">
+    <fieldset>
+      <legend>1. Basics</legend>
+      <div class="hint">What is this category called, and how does the tool recognize this form?</div>
+      <div class="row">
+        <label for="category-name" style="min-width:150px;">Category name</label>
+        <input type="text" id="category-name" class="grow" placeholder="e.g. Home Modifications">
+      </div>
+      <div class="row">
+        <label for="category-id" style="min-width:150px;">Internal ID</label>
+        <input type="text" id="category-id" class="grow" placeholder="auto-generated from the name">
+      </div>
+      <div id="signature-list"></div>
+      <button type="button" class="btn secondary small" id="add-signature">+ Add an identifying phrase</button>
+      <div class="hint" style="margin-top:8px;">Add 1–2 short phrases that always appear on this form (e.g. its title line), so the tool can recognize it automatically.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>2. Fields to read from the form</legend>
+      <div class="hint">What information should the tool pull off the form? (e.g. participant's name, item requested, fee)</div>
+      <div id="fields-list"></div>
+      <button type="button" class="btn secondary small" id="add-field">+ Add a field</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>3. Checklist questions</legend>
+      <div class="hint">Add each question from the form's checklist, and tell the tool how to check it.</div>
+      <div id="questions-list"></div>
+      <button type="button" class="btn secondary small" id="add-question">+ Add a question</button>
+    </fieldset>
+
+    <div style="text-align:center; margin: 24px 0;">
+      <button type="button" class="btn" id="save-btn">Save draft</button>
+    </div>
+  </form>
+
+  <footer>
+    <a href="/manage-checklists" style="color:var(--muted);">← Back to categories</a>
+  </footer>
+</div>
+
+<template id="field-row-tpl">
+  <div class="row" data-field-row>
+    <input type="text" class="grow field-label" placeholder="Field name (e.g. Participant's Name)">
+    <select class="field-type">
+      <option value="text">Text</option>
+      <option value="number">Number</option>
+      <option value="money">Money</option>
+      <option value="link">Link / URL</option>
+      <option value="date">Date</option>
+    </select>
+    <label style="font-weight:400; font-size:13px;"><input type="checkbox" class="field-pii"> Personal info</label>
+    <button type="button" class="btn secondary small remove-row">Remove</button>
+  </div>
+</template>
+
+<template id="signature-row-tpl">
+  <div class="row" data-signature-row>
+    <input type="text" class="grow signature-text" placeholder="e.g. Home Modification Pre-approval Form">
+    <button type="button" class="btn secondary small remove-row">Remove</button>
+  </div>
+</template>
+
+<template id="question-row-tpl">
+  <div class="item-block" data-question-row>
+    <textarea class="q-text" placeholder="Question exactly as it appears on the form"></textarea>
+    <div class="radio-group" data-checkable-group>
+      <label><input type="radio" class="q-checkable" value="yes"> Can be checked from the provider's website</label>
+      <label><input type="radio" class="q-checkable" value="internal"> No — needs internal records (budget, Life Plan, etc.)</label>
+      <label><input type="radio" class="q-checkable" value="document"> No — needs an uploaded document/letter</label>
+    </div>
+
+    <div class="indent q-web-section" hidden>
+      <div class="radio-group" data-webkind-group>
+        <label><input type="radio" class="q-webkind" value="general_judgment"> General yes/no judgment from the page</label>
+        <label><input type="radio" class="q-webkind" value="price_compare"> Compare a price on the form to a price on the website</label>
+        <label><input type="radio" class="q-webkind" value="exclusion_list"> Check against a list of excluded items</label>
+      </div>
+
+      <div class="indent q-price-section" hidden>
+        <div class="row">
+          <label>Which field holds the form's price?</label>
+          <select class="q-price-field"></select>
+        </div>
+        <div class="radio-group" data-pricerule-group>
+          <label><input type="radio" class="q-pricerule" value="match_within_pct"> Must match within
+            <input type="number" class="q-price-pct" style="width:70px;"> %</label>
+          <label><input type="radio" class="q-pricerule" value="not_exceed"> Must not exceed $
+            <input type="number" class="q-price-max" style="width:90px;"></label>
+        </div>
+      </div>
+
+      <div class="indent q-exclusion-section" hidden>
+        <div class="row">
+          <label>Which field names the item being requested?</label>
+          <select class="q-item-field"></select>
+        </div>
+        <div class="exclusion-terms"></div>
+        <button type="button" class="btn secondary small add-exclusion-term">+ Add excluded item</button>
+      </div>
+    </div>
+
+    <div class="indent q-internal-section" hidden>
+      <textarea class="q-why-not" placeholder="Why can't this be checked from the website? (e.g. requires the participant's approved budget record)"></textarea>
+      <div class="row" style="margin-top:8px;">
+        <label>Group</label>
+        <input type="text" class="grow q-group" placeholder="e.g. Budget and funding">
+      </div>
+    </div>
+
+    <details style="margin-top:10px;">
+      <summary style="cursor:pointer; color:var(--accent); font-size:13px;">Optional notes</summary>
+      <textarea class="q-notes" style="width:100%; margin-top:6px;"></textarea>
+    </details>
+
+    <div style="margin-top:10px;">
+      <button type="button" class="btn secondary small remove-row">Remove question</button>
+    </div>
+  </div>
+</template>
+
+<template id="exclusion-term-row-tpl">
+  <div class="row" data-exclusion-term-row>
+    <input type="text" class="grow exclusion-term-text" placeholder="Excluded item/term">
+    <button type="button" class="btn secondary small remove-row">Remove</button>
+  </div>
+</template>
+
+<script>
+  const DRAFT_ID = {{ draft_id|tojson if draft_id else "null" }};
+  const SOURCE_CATEGORY_ID = {{ source_category_id|tojson if source_category_id else "null" }};
+  const INITIAL_WIZARD = {{ initial_wizard_json|safe }};
+
+  function addRow(containerId, tplId, hydrate) {
+    const tpl = document.getElementById(tplId);
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    document.getElementById(containerId).appendChild(node);
+    node.querySelector('.remove-row')?.addEventListener('click', () => { node.remove(); refreshFieldOptions(); });
+    if (hydrate) hydrate(node);
+    return node;
+  }
+
+  function slugify(s) {
+    return (s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  // ---------- Fields ----------
+  function addFieldRow(data) {
+    const node = addRow('fields-list', 'field-row-tpl');
+    if (data) {
+      node.querySelector('.field-label').value = data.label || '';
+      node.querySelector('.field-type').value = data.type || 'text';
+      node.querySelector('.field-pii').checked = !!data.pii;
+    }
+    node.querySelector('.field-label').addEventListener('input', refreshFieldOptions);
+    refreshFieldOptions();
+  }
+  document.getElementById('add-field').addEventListener('click', () => addFieldRow());
+
+  function currentFieldLabels() {
+    return Array.from(document.querySelectorAll('#fields-list .field-label'))
+      .map(i => i.value.trim()).filter(Boolean);
+  }
+  function refreshFieldOptions() {
+    const labels = currentFieldLabels();
+    document.querySelectorAll('.q-price-field, .q-item-field').forEach(sel => {
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">Choose a field…</option>' +
+        labels.map(l => `<option value="${l.replace(/"/g, '&quot;')}">${l}</option>`).join('');
+      if (labels.includes(prev)) sel.value = prev;
+    });
+  }
+
+  // ---------- Signature phrases ----------
+  function addSignatureRow(text) {
+    const node = addRow('signature-list', 'signature-row-tpl');
+    if (text) node.querySelector('.signature-text').value = text;
+  }
+  document.getElementById('add-signature').addEventListener('click', () => addSignatureRow());
+
+  // ---------- Questions ----------
+  function addExclusionTermRow(container, text) {
+    const tpl = document.getElementById('exclusion-term-row-tpl');
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    container.appendChild(node);
+    if (text) node.querySelector('.exclusion-term-text').value = text;
+    node.querySelector('.remove-row').addEventListener('click', () => node.remove());
+  }
+
+  function addQuestionRow(data) {
+    const node = addRow('questions-list', 'question-row-tpl');
+    refreshFieldOptions(); // this row's .q-price-field/.q-item-field selects start empty
+    const checkableRadios = node.querySelectorAll('.q-checkable');
+    const webSection = node.querySelector('.q-web-section');
+    const internalSection = node.querySelector('.q-internal-section');
+    const webkindRadios = node.querySelectorAll('.q-webkind');
+    const priceSection = node.querySelector('.q-price-section');
+    const exclusionSection = node.querySelector('.q-exclusion-section');
+    const exclusionTermsContainer = node.querySelector('.exclusion-terms');
+
+    checkableRadios.forEach(r => r.addEventListener('change', () => {
+      webSection.hidden = r.value !== 'yes' || !r.checked;
+      internalSection.hidden = !(r.checked && r.value !== 'yes');
+      if (r.checked && r.value === 'yes') webSection.hidden = false;
+      if (r.checked && r.value !== 'yes') internalSection.hidden = false;
+    }));
+    webkindRadios.forEach(r => r.addEventListener('change', () => {
+      priceSection.hidden = !(r.checked && r.value === 'price_compare');
+      exclusionSection.hidden = !(r.checked && r.value === 'exclusion_list');
+    }));
+    node.querySelector('.add-exclusion-term').addEventListener('click', () => addExclusionTermRow(exclusionTermsContainer));
+
+    if (data) {
+      node.querySelector('.q-text').value = data.text || '';
+      node.querySelector('.q-notes').value = data.notes || '';
+      node.querySelector('.q-group').value = data.group || '';
+      const checkable = data.checkable_from_website;
+      const cr = node.querySelector(`.q-checkable[value="${checkable}"]`);
+      if (cr) { cr.checked = true; cr.dispatchEvent(new Event('change')); }
+      if (checkable === 'yes') {
+        const kind = data.web_check_kind;
+        const kr = node.querySelector(`.q-webkind[value="${kind}"]`);
+        if (kr) { kr.checked = true; kr.dispatchEvent(new Event('change')); }
+        if (kind === 'price_compare') {
+          node.querySelector('.q-price-field').dataset.pending = data.price_field_label || '';
+          const rr = node.querySelector(`.q-pricerule[value="${data.price_rule}"]`);
+          if (rr) rr.checked = true;
+          if (data.price_rule === 'match_within_pct') node.querySelector('.q-price-pct').value = data.price_value ?? '';
+          if (data.price_rule === 'not_exceed') node.querySelector('.q-price-max').value = data.price_value ?? '';
+        } else if (kind === 'exclusion_list') {
+          node.querySelector('.q-item-field').dataset.pending = data.item_field_label || '';
+          (data.exclusion_terms || []).forEach(t => addExclusionTermRow(exclusionTermsContainer, t));
+        }
+      } else {
+        node.querySelector('.q-why-not').value = data.why_not_checkable || '';
+      }
+    }
+  }
+  document.getElementById('add-question').addEventListener('click', () => addQuestionRow());
+
+  function applyPendingSelectValues() {
+    document.querySelectorAll('.q-price-field, .q-item-field').forEach(sel => {
+      if (sel.dataset.pending !== undefined) {
+        sel.value = sel.dataset.pending;
+        delete sel.dataset.pending;
+      }
+    });
+  }
+
+  // ---------- Hydrate from initial data (edit mode) ----------
+  if (INITIAL_WIZARD) {
+    document.getElementById('category-name').value = INITIAL_WIZARD.category_display_name || '';
+    document.getElementById('category-id').value = INITIAL_WIZARD.category_id || '';
+    (INITIAL_WIZARD.signature_phrases || []).forEach(p => addSignatureRow(p));
+    (INITIAL_WIZARD.fields || []).forEach(f => addFieldRow(f));
+    (INITIAL_WIZARD.questions || []).forEach(q => addQuestionRow(q));
+    applyPendingSelectValues();
+  } else {
+    addSignatureRow();
+    addFieldRow();
+    addQuestionRow();
+  }
+
+  document.getElementById('category-name').addEventListener('input', (e) => {
+    const idField = document.getElementById('category-id');
+    if (!idField.dataset.touched) idField.value = slugify(e.target.value);
+  });
+  document.getElementById('category-id').addEventListener('input', (e) => { e.target.dataset.touched = '1'; });
+
+  // ---------- Collect + Save ----------
+  function collectWizard() {
+    const fields = Array.from(document.querySelectorAll('#fields-list [data-field-row]')).map(row => ({
+      label: row.querySelector('.field-label').value.trim(),
+      type: row.querySelector('.field-type').value,
+      pii: row.querySelector('.field-pii').checked,
+    }));
+
+    const questions = Array.from(document.querySelectorAll('#questions-list [data-question-row]')).map(row => {
+      const checkable = row.querySelector('.q-checkable:checked')?.value || '';
+      const q = {
+        text: row.querySelector('.q-text').value.trim(),
+        notes: row.querySelector('.q-notes').value.trim(),
+        group: row.querySelector('.q-group').value.trim(),
+        checkable_from_website: checkable,
+      };
+      if (checkable === 'yes') {
+        const kind = row.querySelector('.q-webkind:checked')?.value || '';
+        q.web_check_kind = kind;
+        if (kind === 'price_compare') {
+          q.price_field_label = row.querySelector('.q-price-field').value;
+          const rule = row.querySelector('.q-pricerule:checked')?.value;
+          q.price_rule = rule;
+          q.price_value = rule === 'match_within_pct'
+            ? row.querySelector('.q-price-pct').value
+            : row.querySelector('.q-price-max').value;
+        } else if (kind === 'exclusion_list') {
+          q.item_field_label = row.querySelector('.q-item-field').value;
+          q.exclusion_terms = Array.from(row.querySelectorAll('.exclusion-term-text')).map(i => i.value.trim()).filter(Boolean);
+        }
+      } else {
+        q.why_not_checkable = row.querySelector('.q-why-not').value.trim();
+      }
+      return q;
+    });
+
+    return {
+      category_display_name: document.getElementById('category-name').value.trim(),
+      category_id: document.getElementById('category-id').value.trim(),
+      signature_phrases: Array.from(document.querySelectorAll('.signature-text')).map(i => i.value.trim()).filter(Boolean),
+      fields,
+      questions,
+    };
+  }
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const wizard = collectWizard();
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      let resp;
+      if (DRAFT_ID) {
+        resp = await fetch(`/manage-checklists/drafts/${DRAFT_ID}`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({wizard}),
+        });
+      } else {
+        resp = await fetch('/manage-checklists/drafts', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({wizard, source_category_id: SOURCE_CATEGORY_ID}),
+        });
+      }
+      const data = await resp.json();
+      if (!resp.ok) throw new Error((data.errors || ['Could not save this draft.']).join(' '));
+      const id = data.draft_id || DRAFT_ID;
+      window.location.href = `/manage-checklists/drafts/${id}`;
+    } catch (err) {
+      const box = document.getElementById('errors');
+      box.style.display = 'block';
+      box.innerHTML = `<strong>Couldn't save:</strong> ${err.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save draft';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "source_pdf": "Sample-10---Appeal-Gracie-Barra-Jiu-Jitsu.pdf",
+  "category_id": "appeals",
+  "generated_at": "2026-07-14T23:02:39.171345+00:00",
+  "summary_counts": {
+    "found": 4,
+    "not_found": 0,
+    "needs_review": 4
+  },
+  "internal_criteria_count": 12,
+  "fetch_error": null,
+  "low_confidence_fields": []
+}

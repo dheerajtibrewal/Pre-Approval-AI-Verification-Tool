@@ -1,0 +1,13 @@
+{
+  "source_pdf": "Sample-07---HRI-Laptop---exclusion-test.pdf",
+  "category_id": "hri",
+  "generated_at": "2026-07-14T22:59:48.230749+00:00",
+  "summary_counts": {
+    "found": 0,
+    "not_found": 1,
+    "needs_review": 2
+  },
+  "internal_criteria_count": 11,
+  "fetch_error": null,
+  "low_confidence_fields": []
+}

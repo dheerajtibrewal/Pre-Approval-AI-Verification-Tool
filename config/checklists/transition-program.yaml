@@ -1,0 +1,109 @@
+# Transition Program Pre-approval Form — config-driven definition.
+# Source: docs/Project-Brief.pdf §4, §5 and the real "Transition Program
+# Pre-approval Form" (see samples/Sample-09 — LaGuardia CC). Adding a new
+# category = adding a new file like this one; the engine has no
+# category-specific code.
+
+category_id: transition-program
+display_name: "Transition Program"
+
+form_template_signature:
+  - "Transition Program Pre-approval Form"
+  - "Is the program a noncredit-bearing transition program"
+
+item_name_field: provider_name
+fee_field: fee_per_course
+
+fields:
+  - { id: participant_name, label: "Participant's Name", type: string, pii: true }
+  - { id: participant_age, label: "Participant's Age", type: number }
+  - { id: fi_coordinator_name, label: "FI Coordinator Name", type: string }
+  - { id: broker_name, label: "Broker Name", type: string }
+  - { id: provider_name, label: "Name of Transition Program Provider", type: string }
+  - { id: fee_per_course, label: "Fee per Course", type: currency }
+  - { id: webpage_url, label: "Link to Webpage", type: url }
+
+criteria:
+  # --- Website-verifiable ---
+  - id: published_fees
+    question: "Does the program have published fees?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: published fees"
+
+  - id: noncredit_bearing
+    question: "Is the program a noncredit-bearing transition program? (must be YES)"
+    form_question: "Is the program a noncredit-bearing transition program?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: noncredit-bearing description"
+
+  - id: skill_employment_oriented
+    question: "Does the coursework address skill-building and employment outcomes?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: skill-building / employment focus"
+
+  - id: fee_match
+    question: "Is the published course fee within the program's fee caps (≤$350/course or ≤$800/month)?"
+    verifiable: web
+    check_type: fee_match
+    evidence_label: "Evidence: fee vs. program cap"
+    caps: { max: 350 }
+    notes: >
+      This form states a per-course fee, so the $350/course cap is applied.
+      If the program instead bills monthly, the $800/month cap applies
+      instead — a reviewer should confirm the billing basis.
+
+  # --- Document-only (needs an uploaded letter, not the website) ---
+  - id: staff_background_screened
+    question: "Are all staff/volunteers/trainers screened for criminal background & excluded-provider status? (letter required)"
+    form_question: "Are all staff/volunteers/trainers screened for criminal background & excluded-provider status?"
+    verifiable: document
+    check_type: rule
+    evidence_label: ""
+    group: "Provider and programme eligibility"
+    explanation: "Requires a screening-confirmation letter from the program — this cannot be inferred from the provider's public website."
+
+  # --- Internal / not website-verifiable ---
+  - id: budget_approved
+    question: "Is the Transition program currently approved in the budget?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Budget and funding"
+    explanation: "Requires the participant's approved Self-Direction budget record showing Transition Program as an approved spending category."
+
+  - id: completed_educational_program
+    question: "Has the individual already completed their educational program?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Transition programs are for adults who have aged out of their prior educational program — confirm from the participant's record, not the provider's website."
+
+  - id: addresses_valued_outcome
+    question: "Does the coursework address the individual's valued outcome?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires the participant's Life Plan valued-outcome narrative and reviewer judgment."
+
+  - id: opwdd_certified_location
+    question: "Is the program provided in an OPWDD-certified location? (must be NO)"
+    form_question: "Is the program provided in an OPWDD-certified location?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Provider and programme eligibility"
+    explanation: "Requires cross-referencing the agency's internal list of OPWDD-certified locations, which isn't public data."
+
+  - id: other_funding
+    question: "Can the program be funded by ACCES-VR, IDEA, or any other source? (must be NO)"
+    form_question: "Can the program be funded by ACCES-VR, IDEA, or any other source?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Duplication of services"
+    explanation: "Requires knowledge of the participant's ACCES-VR/IDEA/other funding eligibility — not determinable from the provider's website."

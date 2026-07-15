@@ -1,0 +1,19 @@
+{
+  "application_id": "9059f1b6ae",
+  "evidence": [
+    {
+      "evidence_id": "dde6b9c1ef3de9d8",
+      "evidence_type": "whole_page",
+      "label": "Full page as reviewed",
+      "file": "evidence/whole-page-otps-dde6b9c1ef3de9d8.png",
+      "url": "https://www.amazon.com/dp/B075YQXZLK",
+      "page_title": "Amazon.com",
+      "captured_at": "2026-07-15T16:00:28.712755+00:00",
+      "method": "playwright",
+      "supports_criteria": [
+        "item_exists_with_price",
+        "exclusion_list"
+      ]
+    }
+  ]
+}

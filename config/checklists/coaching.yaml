@@ -1,0 +1,86 @@
+# Coaching for Parents/Spouse Pre-approval Checklist — config-driven definition.
+# Source: docs/Project-Brief.pdf §4, §5 and the real
+# "Coaching for Parents/Spouse Pre-approval Form" (see samples/Sample-03).
+# Adding a new category = adding a new file like this one; the engine has no
+# category-specific code, only this data (config/checklist_schema.json defines the shape).
+
+category_id: coaching
+display_name: "Coaching (Parents/Spouse)"
+
+form_template_signature:
+  - "Coaching for Parents/Spouse Pre-approval Form"
+  - "Is the individual over 18"
+
+fee_field: fee_per_class
+
+fields:
+  - { id: participant_name, label: "Participant's Name", type: string, pii: true }
+  - { id: participant_age, label: "Participant's Age", type: number }
+  - { id: fi_coordinator_name, label: "FI Coordinator Name", type: string }
+  - { id: broker_name, label: "Broker Name", type: string }
+  - { id: provider_name, label: "Name of Coaching Provider", type: string }
+  - { id: webpage_url, label: "Link to Webpage", type: url }
+  - { id: fee_per_class, label: "Fee per Class", type: currency }
+  - { id: fee_per_course, label: "Fee per Course", type: currency }
+
+criteria:
+  # --- Website-verifiable ---
+  - id: published_fees
+    question: "Does the coaching provider publish fees for this program?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: published fees"
+
+  - id: fee_match
+    question: "Is the published class fee within the coaching program's fee caps (≤$55/group class or ≤$111/private class)?"
+    verifiable: web
+    check_type: fee_match
+    evidence_label: "Evidence: fee vs. program cap"
+    caps: { max: 111 }
+    notes: >
+      The form does not indicate whether this is a group or private class, so
+      this check conservatively uses the more permissive private-class cap
+      ($111). If the published/stated fee falls between $55 and $111, a
+      reviewer should confirm the class type to apply the correct cap.
+
+  # --- Internal / not website-verifiable ---
+  - id: budget_approved
+    question: "Is coaching education currently approved in the budget?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Budget and funding"
+    explanation: "Requires the participant's approved Self-Direction budget record showing coaching as an approved spending category."
+
+  - id: age_over_18
+    question: "Is the individual over 18?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Coaching for Parents/Spouse is restricted to participants over 18 — confirm the participant's age from the application record."
+
+  - id: addresses_lp_goals
+    question: "Does the coaching address the individual's goals being worked on in the LP?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires the participant's Life Plan (Section 2) goals and reviewer judgment on whether this coaching supports them."
+
+  - id: other_funding
+    question: "Can the coaching program be funded by other public programs? (must be NO)"
+    form_question: "Can the coaching program be funded by other public programs?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Duplication of services"
+    explanation: "Requires knowledge of other public funding sources available to the participant — not determinable from the provider's website."
+
+  - id: annual_cap_500
+    question: "Invoice-rule context: coaching is capped at $500 per year."
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Reimbursement and invoicing"
+    explanation: "Requires cumulative coaching-expense records for the current budget year, which aren't available from a single submission or the provider's website."

@@ -1,0 +1,53 @@
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f6fa; --card: #ffffff; --border: #dfe4ec; --text: #0f1f3d; --muted: #5b6b85; --accent: #1558d6; --accent-dark: #0f3fa3;
+    --found-bg: #eaf7ee; --found-fg: #1e7a42; --found-border: #bfe6cc;
+    --notfound-bg: #fdecec; --notfound-fg: #b42318; --notfound-border: #f6cbc7;
+    --review-bg: #fff6e0; --review-fg: #8a5b00; --review-border: #f0dca0;
+    --internal-bg: #eef1f6; --internal-fg: #475467; --internal-border: #dbe0e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 20px 80px; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  header.hero { padding: 56px 0 8px; text-align: center; }
+  header.hero h1 { font-size: 30px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.02em; }
+  header.hero .sub { color: var(--muted); font-size: 15px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px 32px; margin-top: 32px; box-shadow: 0 1px 2px rgba(15, 31, 61, 0.04);
+  }
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 14px; padding: 48px 20px; text-align: center;
+    color: var(--muted); transition: border-color 0.15s;
+  }
+  .dropzone.drag { border-color: var(--accent); color: var(--accent); }
+  input[type=file] { display: none; }
+  .btn {
+    display: inline-block; font: inherit; font-weight: 600; font-size: 14px; border: none;
+    background: var(--accent); color: #fff; padding: 11px 22px; border-radius: 10px; cursor: pointer;
+    text-decoration: none;
+  }
+  .btn.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .kv-grid { display: grid; grid-template-columns: 200px 1fr; gap: 14px 16px; font-size: 15px; align-items: center; }
+  .kv-grid label { color: var(--muted); font-size: 13px; }
+  .kv-grid input, .kv-grid select {
+    font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); width: 100%;
+  }
+  .field-flag { font-size: 12px; color: var(--review-fg); margin-top: 4px; }
+  .warn-box {
+    background: var(--review-bg); color: var(--review-fg); border: 1px solid var(--review-border);
+    border-radius: 12px; padding: 14px 18px; font-size: 14px; margin: 20px 0;
+  }
+  .note-box {
+    background: var(--internal-bg); color: var(--internal-fg); border: 1px solid var(--internal-border);
+    border-radius: 12px; padding: 12px 16px; font-size: 13.5px; margin-bottom: 20px;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 40px 0; }
+  @media (max-width: 600px) { .kv-grid { grid-template-columns: 1fr; } }
+</style>

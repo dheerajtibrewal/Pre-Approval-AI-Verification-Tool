@@ -1,0 +1,149 @@
+# Household Related Items (HRI) Pre-Approval Form — config-driven definition.
+# Source: docs/Project-Brief.pdf §4, §5 and the real "Household Related Items
+# Pre-Approval Form" (see samples/Sample-06, Sample-07 — Sample-07 is the
+# deliberate exclusion-list trap: "Laptop computer" vs. the "Computer
+# Hardware" exclusion entry). Adding a new category = adding a new file like
+# this one; the engine has no category-specific code.
+
+category_id: hri
+display_name: "Household Related Items"
+
+form_template_signature:
+  - "Household Related Items Pre-Approval Form"
+  - "Is Household-Related Items approved in the budget"
+
+item_name_field: item_requested
+
+fields:
+  - { id: participant_name, label: "Participant's Name", type: string, pii: true }
+  - { id: participant_age, label: "Participant's Age", type: number }
+  - { id: fi_coordinator_name, label: "FI Coordinator Name", type: string }
+  - { id: broker_name, label: "Broker Name", type: string }
+  - { id: item_requested, label: "Item Requested", type: string }
+  - { id: item_link, label: "Link to the Item", type: url }
+  - { id: safety_features, label: "Safety features for the item", type: string, required: false }
+
+criteria:
+  # --- Website-verifiable ---
+  - id: item_exists_with_price
+    question: "Does the linked page show the item exists with a visible price?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: item listing and price"
+
+  - id: safety_features_supported
+    question: "Do the safety features described on the application match what the product page shows?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: safety features"
+    notes: >
+      Judge against the "safety_features" value supplied in the form context,
+      not just the item's general description.
+
+  - id: exclusion_list
+    question: "Is the item on the IDGS/HRI exclusion list? (must be NO)"
+    verifiable: web
+    check_type: exclusion_list
+    evidence_label: ""
+    exclusion_list:
+      - "Academic Tutoring"
+      - "Automatic Pill Dispenser/Medication System"
+      - "Cell Phones/Telephones"
+      - "Computer Hardware"
+      - "Computer Programs/Software"
+      - "Leased & Purchased Vehicles"
+      - "Health-Related Services/Equipment/Supplies"
+      - "Parent/Participant/Staff Activity Fees, Expenses & Meals"
+      - "Personal Monitoring Systems"
+      - "Direct Clinician services & therapies (OT, PT, Speech, Psychology) and experimental therapies"
+
+  # --- Internal / not website-verifiable ---
+  - id: budget_approved
+    question: "Is Household-Related Items approved in the budget?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Budget and funding"
+    explanation: "Requires the participant's approved Self-Direction budget record showing HRI as an approved spending category."
+
+  - id: age_over_18
+    question: "Is the individual over 18?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "HRI is restricted to adult participants — confirm the participant's age from the application record."
+
+  - id: lp_goal_related
+    question: "Is the item related to a need or goal identified in the Life Plan?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires the participant's Life Plan and reviewer judgment on whether this item supports an identified need or goal."
+
+  - id: increases_independence
+    question: "Will the item increase independence, or substitute for human assistance?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires participant-specific context from the Life Plan — not determinable from a product page."
+
+  - id: increases_home_safety
+    question: "Does the item increase safety of the participant in their home environment?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires reviewer judgment connecting the item's use to the participant's specific home environment."
+
+  - id: exclusive_to_participant
+    question: "Is the item exclusively needed for the participant?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Provider and programme eligibility"
+    explanation: "Requires confirmation from the FI Coordinator/Broker that the item is not shared with other household members."
+
+  - id: increases_health_safety
+    question: "Does the item increase the participant's health and safety?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires participant-specific health/safety documentation from the Life Plan."
+
+  - id: lives_in_own_home
+    question: "Does the individual live in their own home? (for Household support only)"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Provider and programme eligibility"
+    explanation: "Requires the participant's residence record on file — not published anywhere public."
+
+  - id: not_already_bought
+    question: "Was the same item bought already in this budget year? (must be NO)"
+    form_question: "Was the same item bought already in this budget year?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Duplication of services"
+    explanation: "Requires the participant's purchase history for the current budget year, which isn't available from the website or this form alone."
+
+  - id: other_funding
+    question: "Can the item be funded through other sources? (must be NO)"
+    form_question: "Can the item be funded through other sources?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Duplication of services"
+    explanation: "Requires knowledge of other funding sources available to the participant — not determinable from a product page."
+
+  - id: annual_cap_1500
+    question: "Invoice-rule context: HRI is capped at $1,500 per budget year."
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Reimbursement and invoicing"
+    explanation: "Requires cumulative HRI spending records for the current budget year, which aren't available from a single submission or the item's page."

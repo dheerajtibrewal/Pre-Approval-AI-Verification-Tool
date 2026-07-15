@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review Draft Checklist</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+{% include "_style.html" %}
+<style>
+  .wrap { max-width: 860px; }
+  pre.yaml {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+    font-size: 12.5px; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  .criterion-summary { border-top: 1px solid var(--border); padding: 10px 0; font-size: 14px; }
+  .criterion-summary:first-child { border-top: none; }
+  .criterion-summary .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; background: var(--internal-bg); color: var(--internal-fg); margin-left: 6px;
+  }
+  #test-result { margin-top: 16px; display: none; }
+  .finding-line { border-top: 1px solid var(--border); padding: 6px 0; font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero" style="padding-top:40px;">
+    <h1>{{ draft.wizard.get("category_display_name") or "Untitled draft" }}</h1>
+    <div class="sub">
+      {% if draft.source_category_id %}Editing existing category "{{ draft.source_category_id }}"{% else %}New category draft{% endif %}
+      — not yet published.
+    </div>
+  </header>
+
+  {% if errors %}
+  <div class="warn-box">
+    <strong>This draft can't be published yet:</strong>
+    <ul style="margin:8px 0 0; padding-left:20px;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3 style="margin-top:0;">What this checklist will check</h3>
+    {% if config_dict %}
+      {% for c in config_dict.criteria %}
+      <div class="criterion-summary">
+        {{ c.question }}
+        {% if c.verifiable == "web" %}<span class="tag">website check</span>
+        {% elif c.verifiable == "document" %}<span class="tag">needs document</span>
+        {% else %}<span class="tag">internal only</span>{% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="meta" style="color:var(--muted);">Fix the issues above to see a preview.</div>
+    {% endif %}
+  </div>
+
+  {% if yaml_text %}
+  <div class="card">
+    <h3 style="margin-top:0;">Generated configuration (for reference)</h3>
+    <pre class="yaml">{{ yaml_text }}</pre>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3 style="margin-top:0;">Test with a sample PDF</h3>
+    <div class="hint" style="color:var(--muted); font-size:13px; margin-bottom:10px;">
+      Optional, but recommended before publishing — runs this draft against a real
+      application PDF (uses real research, same as a normal review).
+    </div>
+    <input type="file" id="test-file" accept="application/pdf">
+    <button class="btn secondary" id="test-btn" {% if errors %}disabled{% endif %}>Run test</button>
+    <div id="test-result"></div>
+  </div>
+
+  <div style="text-align:center; margin: 24px 0; display:flex; gap:12px; justify-content:center;">
+    <a class="btn secondary" href="/manage-checklists/drafts/{{ draft.id }}/wizard">Edit</a>
+    <button class="btn" id="publish-btn" {% if errors %}disabled{% endif %}>Publish</button>
+    <form method="post" action="/manage-checklists/drafts/{{ draft.id }}/discard" onsubmit="return confirm('Discard this draft?');">
+      <button class="btn secondary" type="submit">Discard</button>
+    </form>
+  </div>
+
+  <footer>
+    <a href="/manage-checklists" style="color:var(--muted);">← Back to categories</a>
+  </footer>
+</div>
+
+<script>
+  document.getElementById('test-btn')?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('test-file');
+    const resultBox = document.getElementById('test-result');
+    if (!fileInput.files.length) { alert('Choose a PDF first.'); return; }
+    const btn = document.getElementById('test-btn');
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = '<div class="meta">Running research — this can take a minute…</div>';
+    const form = new FormData();
+    form.append('file', fileInput.files[0]);
+    try {
+      const resp = await fetch('/manage-checklists/drafts/{{ draft.id }}/test', {method: 'POST', body: form});
+      const data = await resp.json();
+      if (!resp.ok) throw new Error((data.errors || ['Test run failed.']).join(' '));
+      let html = '<h4>Extracted fields</h4>';
+      html += Object.entries(data.extracted_fields).map(([k, v]) => `<div class="finding-line"><strong>${k}:</strong> ${v ?? '—'}</div>`).join('');
+      html += '<h4 style="margin-top:14px;">Findings</h4>';
+      html += data.findings.map(f => `<div class="finding-line"><strong>${f.status}</strong> — ${f.question}<br><span class="meta" style="color:var(--muted);">${f.note}</span></div>`).join('');
+      if (data.fetch_error) html += `<div class="warn-box" style="margin-top:12px;">${data.fetch_error}</div>`;
+      resultBox.innerHTML = html;
+    } catch (err) {
+      resultBox.innerHTML = `<div class="warn-box">${err.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Run test';
+    }
+  });
+
+  document.getElementById('publish-btn')?.addEventListener('click', async () => {
+    if (!confirm('Publish this checklist? It will immediately be used for new applications in this category.')) return;
+    const btn = document.getElementById('publish-btn');
+    btn.disabled = true;
+    btn.textContent = 'Publishing…';
+    try {
+      const resp = await fetch('/manage-checklists/drafts/{{ draft.id }}/publish', {method: 'POST'});
+      const data = await resp.json();
+      if (!resp.ok) throw new Error((data.errors || ['Could not publish.']).join(' '));
+      window.location.href = '/manage-checklists';
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+      btn.textContent = 'Publish';
+    }
+  });
+</script>
+</body>
+</html>

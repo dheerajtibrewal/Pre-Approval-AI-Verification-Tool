@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirm Extraction — Pre-Approval Tool</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+{% include "_style.html" %}
+<style>
+  .section-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+    margin: 24px 0 10px; font-weight: 600;
+  }
+  .section-label:first-child { margin-top: 0; }
+  .why-box {
+    font-size: 13.5px; color: var(--muted); background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; margin-top: 16px;
+  }
+  input:invalid { border-color: var(--notfound-fg); }
+  .field-error { font-size: 12px; color: var(--notfound-fg); margin-top: 4px; display: none; }
+  .actions-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>Confirm Extraction</h1>
+    <div class="sub">{{ checklist.display_name }} · {{ record.pdf_filename }}</div>
+  </header>
+
+  <div class="note-box">
+    {{ record.classification_note }}
+    <div class="why-box">
+      <strong>Why confirm this first?</strong> The tool reads this PDF automatically, but
+      scans and unusual layouts can produce mistakes. Everything below is editable —
+      correcting it now (especially the website link and fee) means the research step
+      checks the right thing. Nothing has been sent to any provider website yet.
+    </div>
+  </div>
+
+  {% if record.extracted.warnings %}
+  <div class="warn-box">{% for w in record.extracted.warnings %}{{ w }}<br>{% endfor %}</div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" action="/applications/{{ record.id }}/confirm" id="confirm-form">
+      <div class="section-label">Category</div>
+      <div class="kv-grid">
+        <label for="category_id">Application category</label>
+        <select id="category_id" name="category_id">
+          {% for cid, name in all_categories.items() %}
+          <option value="{{ cid }}" {% if cid == checklist.category_id %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="section-label">Personal information (not sent to any third-party service beyond what's needed to extract it)</div>
+      <div class="kv-grid">
+        {% for f in checklist.fields %}
+        {% if f.pii %}
+        <label for="field-{{ f.id }}">{{ f.label }}</label>
+        <div>
+          <input id="field-{{ f.id }}" name="{{ f.id }}" type="text"
+            value="{{ record.extracted.value(f.id) if record.extracted.value(f.id) is not none else '' }}">
+          {% if f.id in record.extracted.low_confidence_fields %}
+          <div class="field-flag">⚠ Low confidence — please verify against the PDF</div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="section-label">Request details — this is what gets researched</div>
+      <div class="kv-grid">
+        {% for f in checklist.fields %}
+        {% if not f.pii %}
+        <label for="field-{{ f.id }}">{{ f.label }}{% if f.required %} *{% endif %}</label>
+        <div>
+          <input
+            id="field-{{ f.id }}" name="{{ f.id }}"
+            type="{{ 'number' if f.type in ('number','currency') else 'url' if f.type == 'url' else 'text' }}"
+            {% if f.type == 'currency' %}step="0.01"{% endif %}
+            {% if f.required %}required{% endif %}
+            value="{{ record.extracted.value(f.id) if record.extracted.value(f.id) is not none else '' }}">
+          {% if f.id in record.extracted.low_confidence_fields %}
+          <div class="field-flag">⚠ Low confidence — please verify against the PDF</div>
+          {% endif %}
+          {% if f.type == 'url' %}
+          <div class="field-error" data-url-error>Please enter a valid http(s) URL.</div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="actions-row">
+        <a class="btn secondary" href="/">← Upload a different document</a>
+        <button class="btn" type="submit" id="confirm-submit">Confirm and Research Website →</button>
+      </div>
+    </form>
+  </div>
+
+  <footer>
+    Correcting a field here changes only what the tool researches — the original PDF
+    is never modified, and both the original extraction and any corrections you make
+    are kept for audit comparison.
+  </footer>
+</div>
+<script>
+  const form = document.getElementById('confirm-form');
+  const submitBtn = document.getElementById('confirm-submit');
+  form.addEventListener('submit', (e) => {
+    let ok = true;
+    form.querySelectorAll('input[type=url]').forEach((input) => {
+      const errorEl = input.parentElement.querySelector('[data-url-error]');
+      const valid = !input.value || /^https?:\/\/.+/i.test(input.value);
+      if (errorEl) errorEl.style.display = valid ? 'none' : 'block';
+      if (!valid) ok = false;
+    });
+    if (!ok) { e.preventDefault(); return; }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Starting research…';
+  });
+</script>
+</body>
+</html>

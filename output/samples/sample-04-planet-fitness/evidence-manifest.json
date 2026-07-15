@@ -1,0 +1,20 @@
+{
+  "application_id": "26d72b762b",
+  "evidence": [
+    {
+      "evidence_id": "23bca85a8aa01e64",
+      "evidence_type": "whole_page",
+      "label": "Full page as reviewed",
+      "file": "evidence/whole-page-memberships-23bca85a8aa01e64.png",
+      "url": "https://www.planetfitness.com/gyms",
+      "page_title": "Gyms Near Me | Fitness Centers Near Me | Planet Fitness",
+      "captured_at": "2026-07-15T15:50:25.551139+00:00",
+      "method": "firecrawl",
+      "supports_criteria": [
+        "open_to_public",
+        "published_fees",
+        "fee_match"
+      ]
+    }
+  ]
+}

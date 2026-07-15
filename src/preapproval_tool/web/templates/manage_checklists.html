@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manage Checklist Categories</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+{% include "_style.html" %}
+<style>
+  .wrap { max-width: 880px; }
+  .cat-list { list-style: none; margin: 0; padding: 0; }
+  .cat-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 16px 0; border-top: 1px solid var(--border);
+  }
+  .cat-card:first-child { border-top: none; }
+  .cat-card .name { font-weight: 600; font-size: 15px; }
+  .cat-card .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .cat-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .pill {
+    font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--muted); text-transform: uppercase;
+  }
+  .pill.draft { background: var(--review-bg); color: var(--review-fg); border-color: var(--review-border); }
+  section.group { margin-top: 32px; }
+  section.group h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero" style="padding-top:40px;">
+    <h1>Manage Checklist Categories</h1>
+    <div class="sub">Add a new category or update an existing one — no YAML or code required.</div>
+  </header>
+
+  <div style="text-align:center; margin: 20px 0;">
+    <a class="btn" href="/manage-checklists/new">+ Add a new category</a>
+  </div>
+
+  <div class="note-box">
+    New categories and edits to existing ones save as a <strong>draft</strong> first.
+    A draft never affects real reviewer traffic until it's explicitly published —
+    you can test it against a sample PDF before publishing.
+  </div>
+
+  <section class="group">
+    <h2>Drafts awaiting review ({{ drafts|length }})</h2>
+    {% if drafts %}
+    <ul class="cat-list">
+      {% for d in drafts %}
+      <li class="cat-card">
+        <div>
+          <div class="name">{{ d.wizard.get("category_display_name") or "(untitled draft)" }}
+            {% if d.source_category_id %}<span class="pill draft">editing {{ d.source_category_id }}</span>{% else %}<span class="pill draft">new</span>{% endif %}
+          </div>
+          <div class="meta">Last updated {{ d.updated_at[:16].replace("T", " ") }} UTC</div>
+        </div>
+        <div class="cat-actions">
+          <a class="btn secondary" href="/manage-checklists/drafts/{{ d.id }}">Review</a>
+          <a class="btn secondary" href="/manage-checklists/drafts/{{ d.id }}/wizard">Edit</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="meta" style="padding: 8px 0;">No drafts right now.</div>
+    {% endif %}
+  </section>
+
+  <section class="group">
+    <h2>Live categories ({{ live_categories|length }})</h2>
+    <ul class="cat-list">
+      {% for cid, cfg in live_categories.items() %}
+      <li class="cat-card">
+        <div>
+          <div class="name">{{ cfg.display_name }}</div>
+          <div class="meta">{{ cfg.web_criteria|length }} website-checked · {{ cfg.internal_criteria|length }} internal/document · {{ cfg.fields|length }} fields</div>
+        </div>
+        <div class="cat-actions">
+          <a class="btn secondary" href="/manage-checklists/edit/{{ cid }}">Edit</a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <footer>
+    <a href="/" style="color:var(--muted);">← Back to upload</a>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Researching — Pre-Approval Tool</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+{% include "_style.html" %}
+<style>
+  .stage-list { list-style: none; margin: 28px 0 0; padding: 0; }
+  .stage-list li {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0; font-size: 14.5px; color: var(--muted);
+  }
+  .stage-list li.active { color: var(--text); font-weight: 600; }
+  .stage-list li.done { color: var(--found-fg); }
+  .dot {
+    width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .stage-list li.active .dot { border-color: var(--accent); }
+  .stage-list li.done .dot { border-color: var(--found-fg); background: var(--found-bg); }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border);
+    border-top-color: var(--accent); animation: spin 0.8s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #elapsed { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  #live-message { min-height: 1.4em; }
+  [role="status"] { outline: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>Researching the provider website</h1>
+    <div class="sub">{{ record.pdf_filename }}</div>
+  </header>
+
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="spinner" id="spinner" aria-hidden="true"></div>
+      <div id="live-message" role="status" aria-live="polite">{{ record.progress_message or "Starting…" }}</div>
+    </div>
+    <div id="elapsed">Elapsed: <span id="elapsed-seconds">0</span>s</div>
+
+    <ol class="stage-list" id="stage-list" aria-hidden="true">
+      <li data-match="Validating"><span class="dot"></span> Validating the provider URL</li>
+      <li data-match="Reading"><span class="dot"></span> Reading the public website</li>
+      <li data-match="Capturing"><span class="dot"></span> Capturing evidence</li>
+      <li data-match="Checking"><span class="dot"></span> Checking application criteria</li>
+      <li data-match="Preparing"><span class="dot"></span> Preparing the reviewer report</li>
+    </ol>
+
+    <div id="failure-box" class="warn-box" style="display:none; margin-top:20px;">
+      <strong>The research step didn't complete.</strong>
+      <div id="failure-message" style="margin-top:6px;"></div>
+      <div style="margin-top:14px;">
+        <form method="post" action="/applications/{{ record.id }}/regenerate">
+          <button class="btn" type="submit">Retry</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    This runs the real pipeline — fetching the provider's page, capturing
+    evidence, and checking each criterion. It typically takes well under a
+    minute.
+  </footer>
+</div>
+<script>
+  const appId = {{ record.id | tojson }};
+  let seconds = 0;
+  const elapsedEl = document.getElementById('elapsed-seconds');
+  const liveMessage = document.getElementById('live-message');
+  const stageItems = document.querySelectorAll('#stage-list li');
+  const failureBox = document.getElementById('failure-box');
+  const failureMessage = document.getElementById('failure-message');
+  const spinner = document.getElementById('spinner');
+
+  setInterval(() => { seconds += 1; elapsedEl.textContent = seconds; }, 1000);
+
+  function updateStages(message) {
+    let matchedIndex = -1;
+    stageItems.forEach((li, i) => {
+      if (message && message.indexOf(li.dataset.match) !== -1) matchedIndex = i;
+    });
+    stageItems.forEach((li, i) => {
+      li.classList.toggle('done', matchedIndex !== -1 && i < matchedIndex);
+      li.classList.toggle('active', i === matchedIndex);
+    });
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch(`/applications/${appId}/status`);
+      const data = await res.json();
+      if (data.message) { liveMessage.textContent = data.message; updateStages(data.message); }
+      if (data.stage === 'reported') {
+        window.location.href = `/applications/${appId}/report`;
+        return;
+      }
+      if (data.stage === 'failed') {
+        spinner.style.display = 'none';
+        failureBox.style.display = 'block';
+        failureMessage.textContent = data.error || 'Unknown error.';
+        return;
+      }
+    } catch (e) {
+      // network hiccup — keep polling rather than surfacing a raw error
+    }
+    setTimeout(poll, 1000);
+  }
+  poll();
+</script>
+</body>
+</html>

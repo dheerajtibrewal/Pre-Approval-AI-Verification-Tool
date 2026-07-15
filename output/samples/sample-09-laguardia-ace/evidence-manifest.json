@@ -1,0 +1,21 @@
+{
+  "application_id": "a005af168e",
+  "evidence": [
+    {
+      "evidence_id": "56987e6adad8eac8",
+      "evidence_type": "whole_page",
+      "label": "Full page as reviewed",
+      "file": "evidence/whole-page-transition-program-56987e6adad8eac8.png",
+      "url": "https://www.laguardia.edu/ace/",
+      "page_title": "home \u2013 LaGuardia Community College",
+      "captured_at": "2026-07-15T15:43:44.188118+00:00",
+      "method": "firecrawl",
+      "supports_criteria": [
+        "published_fees",
+        "noncredit_bearing",
+        "skill_employment_oriented",
+        "fee_match"
+      ]
+    }
+  ]
+}

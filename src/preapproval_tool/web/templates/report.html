@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Approval Review — {{ report.provider_name or "Report" }}</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f6fa; --surface: #ffffff; --border: #dfe4ec; --text: #0f1f3d; --muted: #5b6b85; --accent: #1558d6; --accent-dark: #0f3fa3;
+    --found-bg: #eaf7ee; --found-fg: #1e7a42; --found-border: #bfe6cc;
+    --notfound-bg: #fdecec; --notfound-fg: #b42318; --notfound-border: #f6cbc7;
+    --review-bg: #fff6e0; --review-fg: #8a5b00; --review-border: #f0dca0;
+    --internal-bg: #eef1f6; --internal-fg: #475467; --internal-border: #dbe0e8;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow-sm: 0 1px 2px rgba(15, 31, 61, 0.05);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5; font-size: 15px;
+  }
+  a { color: var(--accent); }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Header ---------- */
+  .product-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
+    padding: var(--s3) var(--s6); background: var(--text); color: #fff;
+  }
+  .product-bar .product-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+  .product-bar .product-name .dot { width: 8px; height: 8px; border-radius: 50%; background: #5b9dff; display: inline-block; }
+  .product-bar .new-review {
+    font-size: 13px; font-weight: 600; color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,0.35);
+    padding: 6px 14px; border-radius: var(--radius-sm);
+  }
+  .product-bar .new-review:hover { background: rgba(255,255,255,0.1); }
+  .app-header {
+    padding: var(--s4) var(--s6); border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .app-header .eyebrow { color: var(--muted); font-size: 13px; }
+  .app-header h1 { font-size: 22px; font-weight: 700; margin: 4px 0 10px; letter-spacing: -0.01em; }
+  .app-header .meta-row { display: flex; flex-wrap: wrap; gap: var(--s4); color: var(--muted); font-size: 13px; align-items: center; }
+  .progress-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .count-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: var(--s3); }
+  .count-pill {
+    font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  @media (max-width: 600px) {
+    .product-bar { padding: var(--s3) var(--s4); }
+    .app-header { padding: var(--s4); }
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
+  nav.tabs {
+    flex: 0 0 220px; position: sticky; top: 0; align-self: flex-start;
+    padding: var(--s5) var(--s3); display: flex; flex-direction: column; gap: 2px;
+  }
+  nav.tabs button {
+    text-align: left; border: none; background: none; color: var(--muted); padding: 10px 14px;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 14.5px; font-weight: 500;
+  }
+  nav.tabs button:hover { background: var(--surface); }
+  nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 700; }
+  main.content { flex: 1; min-width: 0; padding: var(--s5) var(--s6) var(--s7); }
+  .panel { max-width: 760px; }
+  .panel[hidden] { display: none; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--s5); margin-bottom: var(--s4); box-shadow: var(--shadow-sm);
+  }
+  .card h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0 0 var(--s4); font-weight: 700; }
+  .kv-grid { display: grid; grid-template-columns: 150px 1fr; gap: var(--s3) var(--s4); font-size: 14.5px; }
+  .kv-grid dt { color: var(--muted); } .kv-grid dd { margin: 0; word-break: break-word; }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 12px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .status-badge.found { background: var(--found-bg); color: var(--found-fg); border-color: var(--found-border); }
+  .status-badge.not_found { background: var(--notfound-bg); color: var(--notfound-fg); border-color: var(--notfound-border); }
+  .status-badge.needs_review { background: var(--review-bg); color: var(--review-fg); border-color: var(--review-border); }
+  .status-badge.internal { background: var(--internal-bg); color: var(--internal-fg); border-color: var(--internal-border); }
+
+  .warn-box, .info-box {
+    background: var(--review-bg); color: var(--review-fg); border: 1px solid var(--review-border);
+    border-radius: var(--radius-sm); padding: var(--s3) var(--s4); font-size: 14px; margin-bottom: var(--s4);
+  }
+  .info-box { background: var(--internal-bg); color: var(--internal-fg); border-color: var(--internal-border); }
+
+  /* ---------- Overview ---------- */
+  .attention-list { list-style: none; margin: 0; padding: 0; }
+  .attention-list li {
+    display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) 0; border-top: 1px solid var(--border);
+  }
+  .attention-list li:first-child { border-top: none; }
+  .next-action { font-size: 15px; padding: var(--s4); background: var(--bg); border-radius: var(--radius-sm); }
+  details.how-to-read summary { cursor: pointer; font-size: 13.5px; color: var(--accent); }
+  .legend-item { display: flex; gap: 10px; padding: 8px 0; font-size: 13.5px; }
+
+  /* ---------- Findings ---------- */
+  .toolbar-row { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; margin-bottom: var(--s4); }
+  .filter-btn {
+    font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); padding: 6px 13px; border-radius: 999px; cursor: pointer;
+  }
+  .filter-btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .search-input {
+    flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text);
+  }
+  details.finding-card {
+    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--s3); background: var(--surface);
+  }
+  details.finding-card summary {
+    list-style: none; cursor: pointer; padding: var(--s4); display: flex; gap: var(--s3); align-items: center;
+  }
+  details.finding-card summary::-webkit-details-marker { display: none; }
+  details.finding-card summary .chev { margin-left: auto; color: var(--muted); transition: transform 0.15s; }
+  details.finding-card[open] summary .chev { transform: rotate(90deg); }
+  .summary-text { flex: 1; min-width: 0; }
+  .summary-text .q { font-weight: 600; font-size: 14.5px; }
+  .summary-text .one-liner { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .finding-body { padding: 0 var(--s4) var(--s4); border-top: 1px solid var(--border); margin-top: 0; }
+  .answer-compare { display: flex; gap: var(--s6); margin: var(--s4) 0; flex-wrap: wrap; }
+  .answer-compare div { font-size: 13.5px; } .answer-compare .label { color: var(--muted); display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .finding-quote {
+    font-size: 13.5px; font-style: italic; margin: var(--s3) 0; padding: var(--s3);
+    background: var(--bg); border-left: 3px solid var(--accent); border-radius: 6px;
+  }
+  .evidence-row { display: flex; gap: var(--s3); margin: var(--s3) 0; flex-wrap: wrap; }
+  .evidence-thumb {
+    display: block; width: 180px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; background: var(--bg); cursor: zoom-in; padding: 0; text-align: left; color: var(--text);
+  }
+  .evidence-thumb .thumb-crop { width: 100%; height: 110px; overflow: hidden; }
+  .evidence-thumb img { width: 100%; display: block; object-fit: cover; object-position: top; }
+  .evidence-thumb .cap { font-size: 11px; padding: 6px 8px; color: var(--muted); }
+  .overridden-tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--accent);
+    margin: var(--s2) 0; text-transform: uppercase; letter-spacing: 0.04em; }
+  details.edit-disclosure { margin-top: var(--s3); }
+  details.edit-disclosure summary { cursor: pointer; font-size: 12.5px; color: var(--accent); list-style: none; padding: 0; }
+  .edit-form { display: flex; gap: var(--s2); margin-top: var(--s2); flex-wrap: wrap; align-items: flex-start; }
+  .edit-form select, .edit-form textarea {
+    border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; background: var(--surface); color: var(--text);
+  }
+  .edit-form textarea { flex: 1; min-width: 200px; min-height: 40px; }
+  .btn-row { display: flex; gap: var(--s2); margin-top: var(--s3); flex-wrap: wrap; }
+  .btn, .edit-form button, .toolbar button {
+    font: inherit; font-weight: 600; font-size: 13px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none;
+    display: inline-block; min-height: 34px;
+  }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ---------- Evidence tab ---------- */
+  .evidence-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s4); }
+  .evidence-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .evidence-card .thumb { height: 140px; overflow: hidden; cursor: zoom-in; background: var(--bg); }
+  .evidence-card .thumb img { width: 100%; object-fit: cover; object-position: top; }
+  .evidence-card .meta { padding: var(--s3); font-size: 12px; color: var(--muted); }
+  .evidence-card .meta strong { color: var(--text); display: block; font-size: 13px; margin-bottom: 4px; }
+
+  /* ---------- Internal checks ---------- */
+  .internal-group { margin-bottom: var(--s5); }
+  .internal-group h3 { font-size: 14px; margin: 0 0 var(--s3); }
+  .internal-item { border-top: 1px solid var(--border); padding: var(--s3) 0; }
+  .internal-item:first-child { border-top: none; }
+  .internal-item .q { font-weight: 600; font-size: 14px; }
+  .internal-item .explain { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+
+  /* ---------- Export ---------- */
+  .checklist-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 14px; }
+
+  /* ---------- Lightbox ---------- */
+  #lightbox { border: none; border-radius: 16px; padding: 0; max-width: 94vw; max-height: 94vh; background: var(--surface); }
+  #lightbox::backdrop { background: rgba(0,0,0,0.65); }
+  #lightbox .lb-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
+    padding: var(--s3) var(--s4); border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  #lightbox .lb-controls { display: flex; gap: 6px; }
+  #lightbox .lb-controls button, #lightbox .lb-controls a {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px;
+    padding: 5px 10px; border-radius: 7px; cursor: pointer; text-decoration: none;
+  }
+  #lightbox .lb-body { overflow: auto; max-height: 76vh; text-align: center; background: var(--bg); }
+  #lightbox .lb-body img { display: inline-block; max-width: 100%; }
+  #lightbox .lb-body.fit-full img { max-width: none; }
+  #lightbox .lb-foot { padding: var(--s3) var(--s4); font-size: 12px; color: var(--muted); display: flex; gap: var(--s4); flex-wrap: wrap; }
+
+  footer.site-footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: var(--s6) 0; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    nav.tabs {
+      flex: 0 0 auto; flex-direction: row; position: sticky; top: 0; z-index: 5; width: 100%; overflow-x: auto;
+      background: var(--bg); border-bottom: 1px solid var(--border); padding: var(--s2) var(--s3);
+      gap: var(--s2);
+    }
+    nav.tabs button { flex: 0 0 auto; white-space: nowrap; }
+    main.content { padding: var(--s4); width: 100%; }
+    .kv-grid { grid-template-columns: 1fr; }
+    .kv-grid dt { font-weight: 600; }
+    .evidence-thumb { width: 100%; }
+    .answer-compare { gap: var(--s4); }
+  }
+
+  /* ---------- PDF / print ---------- */
+  .pdf-section-title { font-size: 19px; font-weight: 700; margin: 0 0 var(--s4); letter-spacing: -0.01em; break-after: avoid-page; page-break-after: avoid; }
+  /* Evidence/Internal Checks/Review & Export flow straight on from Findings
+     instead of each forcing its own fresh page — only Findings (Overview's
+     natural, usually-long next section) gets a hard page break. A forced
+     break on every section wasted most of a page whenever that section's
+     own content was short (see log.md Key Learnings). This border+spacing
+     stands in for the page-turn as the section boundary. */
+  .pdf-section-divider { margin-top: var(--s7); padding-top: var(--s5); border-top: 2px solid var(--border); }
+
+  /* ---------- PDF cover page ---------- */
+  /* A reviewer opening the PDF cold should see the whole picture — who,
+     what, and the verdict counts — before wading into 8+ individual
+     findings. Rendered only in pdf_mode; the interactive web view opens
+     straight to the Overview tab instead. */
+  /* The compact cover fits one page (verified incl. the longer appeal cover);
+     it breaks after itself so content starts fresh. The product bar is hidden
+     in pdf_mode (see below) so nothing strays onto a near-blank second page
+     between the cover and the first content section (Sample 10 QA). */
+  .pdf-cover { max-width: 760px; margin: 0 auto; padding: var(--s5) var(--s6) 0; break-after: page; page-break-after: always; }
+  /* Cover must fit on a single page (a near-empty second cover page reads as a
+     bug — see log.md). Everything on it is deliberately compact. */
+  .pdf-cover .card { padding: var(--s4); margin-bottom: var(--s3); box-shadow: none; }
+  .pdf-cover .card h2 { margin-bottom: var(--s2); }
+  .pdf-cover .kv-grid { gap: var(--s1) var(--s4); font-size: 13.5px; }
+  .pdf-summary-card { background: var(--surface); }
+  .pdf-cover-brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pdf-cover-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .pdf-cover-eyebrow { color: var(--muted); font-size: 13px; margin-top: var(--s5); }
+  .pdf-cover-title { font-size: 28px; font-weight: 700; margin: 6px 0 8px; letter-spacing: -0.02em; }
+  .pdf-cover-meta { color: var(--muted); font-size: 13px; margin-bottom: var(--s5); }
+  .pdf-cover-verdicts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s3); margin-bottom: var(--s4); }
+  .pdf-cover-verdict {
+    border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s4) var(--s3); text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .pdf-cover-verdict .n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .pdf-cover-verdict .l { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .pdf-cover-verdict.found { background: var(--found-bg); border-color: var(--found-border); }
+  .pdf-cover-verdict.found .n { color: var(--found-fg); }
+  .pdf-cover-verdict.not_found { background: var(--notfound-bg); border-color: var(--notfound-border); }
+  .pdf-cover-verdict.not_found .n { color: var(--notfound-fg); }
+  .pdf-cover-verdict.needs_review { background: var(--review-bg); border-color: var(--review-border); }
+  .pdf-cover-verdict.needs_review .n { color: var(--review-fg); }
+  .pdf-cover-verdict.internal { background: var(--internal-bg); border-color: var(--internal-border); }
+  .pdf-cover-verdict.internal .n { color: var(--internal-fg); }
+  .pdf-cover-summary { font-size: 14.5px; line-height: 1.6; }
+  .pdf-cover-footnote { color: var(--muted); font-size: 12.5px; margin-top: var(--s5); text-align: center; }
+
+  @media print {
+    body { background: #fff; }
+    .product-bar .new-review { display: none; }
+    .app-header { border-bottom: 2px solid var(--text); }
+    .layout { display: block; }
+    main.content { padding: var(--s4) 0; width: 100%; }
+    .panel { max-width: 100%; }
+    .panel.pdf-page-break { break-before: page; }
+    /* A printed audit document can sit denser than the screen view's
+       generous whitespace without feeling cramped — the screen layout's
+       spacing is tuned for comfortable on-screen reading, not for fitting
+       the maximum useful content per page. */
+    .card { padding: var(--s4); margin-bottom: var(--s3); box-shadow: none; break-inside: avoid-page; page-break-inside: avoid; }
+    /* Reference/legend cards may flow across a page break so they fill the
+       remaining space instead of jumping whole to a fresh, mostly-blank page. */
+    .card.pdf-allow-break { break-inside: auto; page-break-inside: auto; }
+    /* ...but an individual legend ROW must never be split by a page boundary:
+       Chromium's print engine corrupts letter-spacing on a line cut mid-height
+       (it rendered "H umanConfirmation" / "Thiscan'tbechecked..."). Keep each
+       row and the summary atomic so a break only ever lands between rows. */
+    .card.pdf-allow-break .legend-item,
+    .card.pdf-allow-break summary { break-inside: avoid; page-break-inside: avoid; }
+    .evidence-card, .internal-item { box-shadow: none; break-inside: avoid-page; page-break-inside: avoid; }
+    details.finding-card { margin-bottom: var(--s2); }
+    .finding-body { padding: 0 var(--s3) var(--s3); }
+    .answer-compare { margin: var(--s3) 0; gap: var(--s5); }
+    .finding-quote { margin: var(--s3) 0; }
+    .evidence-thumb .thumb-crop { height: 90px; }
+    /* A short trailing block needs at least 2 lines of remaining page space
+       or the browser's orphan/widow rule bumps it whole onto a fresh page —
+       a smaller footer needs less room to fit, so this is less likely (not
+       guaranteed) to land alone on a near-blank final page. */
+    /* Keep the footer atomic: a page break landing mid-footer produced a
+       garbled, half-overlapping duplicate of the disclaimer line (Sample 07
+       QA). Never let it fragment across a page boundary. */
+    footer.site-footer { padding: var(--s3) 0; font-size: 11.5px; break-inside: avoid-page; page-break-inside: avoid; }
+    /* Open finding-cards can be taller than one page (embedded full-size
+       evidence images), so the card itself must be allowed to paginate —
+       but its summary header row is a small flex container, and Chromium's
+       print engine will otherwise fragment individual flex children mid-row
+       at a page boundary, leaving a stray orphaned chevron/badge on one
+       page and the rest of the row on the next. Keep the header atomic and
+       never let a page break separate it from the start of its content. */
+    .finding-card summary { break-inside: avoid-page; page-break-inside: avoid; break-after: avoid-page; page-break-after: avoid; }
+    .answer-compare, .finding-quote, .evidence-thumb, .overridden-tag { break-inside: avoid-page; page-break-inside: avoid; }
+    a { color: var(--text); text-decoration: underline; }
+  }
+</style>
+</head>
+<body{% if pdf_mode %} class="pdf-mode"{% endif %}>
+
+{% if pdf_mode %}
+<section class="pdf-cover">
+  <div class="pdf-cover-brand"><span class="dot" aria-hidden="true"></span> Pre-Approval Verification</div>
+  <div class="pdf-cover-eyebrow">{{ report.category_display_name }} · Website Verification Report</div>
+  <h1 class="pdf-cover-title">{{ report.display_title }}</h1>
+  <div class="pdf-cover-meta">Run {{ report.application_id }} · Generated {{ report.generated_at.strftime("%b %-d, %Y %H:%M UTC") }}</div>
+
+  {% if report.appeal_denial_reason %}
+  <div class="warn-box"><strong>Appeal — original denial reason:</strong> {{ report.appeal_denial_reason }}</div>
+  {% endif %}
+  {% if report.fetch_error %}
+  <div class="warn-box"><strong>The provider's website could not be reached.</strong> Every website-verifiable item in this report is Needs Review as a result.</div>
+  {% endif %}
+  {% if report.research_note %}
+  <div class="info-box"><strong>How this was researched:</strong> {{ report.research_note }}</div>
+  {% endif %}
+
+  <div class="pdf-cover-verdicts">
+    <div class="pdf-cover-verdict found"><span class="n">{{ report.summary_counts.found }}</span><span class="l">Confirmed</span></div>
+    <div class="pdf-cover-verdict not_found"><span class="n">{{ report.summary_counts.not_found }}</span><span class="l">Not Confirmed</span></div>
+    <div class="pdf-cover-verdict needs_review"><span class="n">{{ report.summary_counts.needs_review }}</span><span class="l">Needs Review</span></div>
+    <div class="pdf-cover-verdict internal"><span class="n">{{ report.internal_findings|length }}</span><span class="l">Human Confirmation</span></div>
+  </div>
+
+  {% if report.executive_summary %}
+  <div class="card pdf-summary-card">
+    <h2>Summary</h2>
+    <p style="margin:0;">{{ report.executive_summary }}</p>
+  </div>
+  {% else %}
+  <p class="pdf-cover-summary">
+    <strong>{{ report.summary_counts.found }} of {{ report.total_reviewable }}</strong> website-verifiable items were
+    confirmed on the provider's public page.
+    {% if report.attention_items %}
+      <strong>{{ report.attention_items|length }}</strong> item{{ "s" if report.attention_items|length != 1 else "" }}
+      need attention before this can move forward. Everything under Internal Checks requires human
+      records or judgment and is not something this tool can verify online.
+    {% else %}
+      Nothing needs attention on the website side — Internal Checks still requires human review, as it always does.
+    {% endif %}
+  </p>
+  {% endif %}
+
+  <div class="card pdf-glance-card">
+    <h2>Request at a glance</h2>
+    <dl class="kv-grid">
+      <dt>Participant</dt><dd>{{ report.participant_name or "—" }}</dd>
+      {% if report.provider_name %}<dt>Provider</dt><dd>{{ report.provider_name }}</dd>{% endif %}
+      <dt>Requested item</dt><dd>{{ report.item_name or "—" }}</dd>
+      <dt>Category</dt><dd>{{ report.category_display_name }}</dd>
+      <dt>Source website</dt><dd>{% if report.webpage_url %}{{ report.source_domain }}{% else %}—{% endif %}</dd>
+      {% if report.form_fee %}<dt>Submitted fee</dt><dd>{{ report.form_fee }}</dd>{% endif %}
+    </dl>
+  </div>
+
+  <p class="pdf-cover-footnote">
+    Full per-criterion findings, evidence captures, and the internal-checks list follow on the next pages.
+    This report assists a human reviewer and does not itself approve or deny this request.
+  </p>
+</section>
+{% endif %}
+
+{% if not pdf_mode %}
+<div class="product-bar">
+  <span class="product-name"><span class="dot" aria-hidden="true"></span> Pre-Approval Verification</span>
+  {% if interactive %}<a class="new-review" href="/">New review</a>{% endif %}
+</div>
+{% endif %}
+
+{% if not pdf_mode %}
+<header class="app-header">
+  <div class="eyebrow">{{ report.category_display_name }} · Website Verification Report</div>
+  <h1>{{ report.display_title }}</h1>
+  <div class="meta-row">
+    <span>Run {{ report.application_id }}</span>
+    <span>Generated {{ report.generated_at.strftime("%b %-d, %Y %H:%M UTC") }}</span>
+    {% if interactive %}<span class="progress-pill">{{ report.overall_reviewed_count }} of {{ report.overall_total }} reviewed</span>{% endif %}
+  </div>
+  <div class="count-badges">
+    <span class="count-pill">✓ {{ report.summary_counts.found }} Confirmed</span>
+    <span class="count-pill">✕ {{ report.summary_counts.not_found }} Not Confirmed</span>
+    <span class="count-pill">? {{ report.summary_counts.needs_review }} Needs Review</span>
+    <span class="count-pill">— {{ report.internal_findings|length }} Human Confirmation</span>
+  </div>
+</header>
+{% endif %}
+
+<div class="layout">
+  {% if not pdf_mode %}
+  <nav class="tabs" role="tablist" aria-label="Report sections">
+    <button role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" data-tab="overview">Overview</button>
+    <button role="tab" id="tab-findings" aria-controls="panel-findings" aria-selected="false" tabindex="-1" data-tab="findings">Findings</button>
+    <button role="tab" id="tab-evidence" aria-controls="panel-evidence" aria-selected="false" tabindex="-1" data-tab="evidence">Evidence</button>
+    <button role="tab" id="tab-internal" aria-controls="panel-internal" aria-selected="false" tabindex="-1" data-tab="internal">Internal Checks</button>
+    <button role="tab" id="tab-export" aria-controls="panel-export" aria-selected="false" tabindex="-1" data-tab="export">Review &amp; Export</button>
+  </nav>
+  {% endif %}
+
+  <main class="content">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+
+      {% if pdf_mode %}<h2 class="pdf-section-title">What needs your attention</h2>{% endif %}
+
+      {% if not pdf_mode %}
+      {% if report.appeal_denial_reason %}
+      <div class="warn-box"><strong>Appeal — original denial reason:</strong> {{ report.appeal_denial_reason }}
+        <br>Findings below are framed against this stated reason.</div>
+      {% endif %}
+      {% if report.fetch_error %}
+      <div class="warn-box"><strong>The provider's website could not be reached.</strong> {{ report.fetch_error }}
+        Every website-verifiable item below is marked Needs Review as a result — that's the correct,
+        honest outcome, not a hidden failure.</div>
+      {% endif %}
+      {% if report.research_note %}
+      <div class="info-box"><strong>How this was researched:</strong> {{ report.research_note }}</div>
+      {% endif %}
+
+      {% if report.executive_summary %}
+      <div class="card">
+        <h2>Summary</h2>
+        <p style="margin:0;">{{ report.executive_summary }}</p>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <h2>Request at a glance</h2>
+        <dl class="kv-grid">
+          <dt>Participant</dt><dd>{{ report.participant_name or "—" }}</dd>
+          {% if report.provider_name %}<dt>Provider</dt><dd>{{ report.provider_name }}</dd>{% endif %}
+          <dt>Requested item</dt><dd>{{ report.item_name or "—" }}</dd>
+          <dt>Category</dt><dd>{{ report.category_display_name }}</dd>
+          <dt>Source website</dt>
+          <dd>{% if report.webpage_url %}<a href="{{ report.webpage_url }}" target="_blank" rel="noopener">{{ report.source_domain }}</a>{% else %}—{% endif %}</dd>
+          {% if report.form_fee %}<dt>Submitted fee</dt><dd>{{ report.form_fee }}</dd>{% endif %}
+        </dl>
+      </div>
+      {% endif %}
+
+      {# PDF: the cover already carries the summary + glance + verdict counts,
+         so the first content page leads straight with the actionable items. #}
+      {% if pdf_mode and report.attention_items %}
+      <div class="card">
+        <h2>Needs your attention</h2>
+        <ul class="attention-list" style="margin:0;">
+          {% for f in report.attention_items %}
+          <li>
+            <span class="status-badge {{ f.status }}">{{ status_labels[f.status] }}</span>
+            <span>{{ f.question }} — {{ f.note }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% elif pdf_mode %}
+      <div class="card"><p style="margin:0;">Nothing on the website side needs attention. The Internal Checks
+        section still requires human confirmation, as it always does.</p></div>
+      {% endif %}
+
+      {% set fee_finding = report.findings | selectattr("criterion_id", "equalto", "fee_match") | list %}
+      {% if fee_finding %}
+      <div class="card">
+        <h2>Fee comparison</h2>
+        <div class="status-badge {{ fee_finding[0].status }}">{{ status_labels[fee_finding[0].status] }}</div>
+        <p style="margin-bottom:0;">{{ fee_finding[0].note }}</p>
+      </div>
+      {% endif %}
+
+      {% if not pdf_mode %}
+      <div class="card">
+        <h2>What this report tells you</h2>
+        <div class="next-action">
+          <strong>{{ report.summary_counts.found }} of {{ report.total_reviewable }}</strong> website-verifiable
+          items were confirmed on the provider's public page.
+          {% if report.attention_items %}
+          <strong>{{ report.attention_items|length }}</strong> item{{ "s" if report.attention_items|length != 1 else "" }}
+          need attention before this can move forward.
+          {% else %}
+          Nothing needs your attention on the website side — the Internal Checks tab still needs
+          human confirmation, as it always does.
+          {% endif %}
+        </div>
+
+        {% if report.attention_items %}
+        <ul class="attention-list" style="margin-top:16px;">
+          {% for f in report.attention_items %}
+          <li>
+            <span class="status-badge {{ f.status }}">{{ status_labels[f.status] }}</span>
+            <span>{{ f.question }} — {{ f.note }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="card{% if pdf_mode %} pdf-allow-break{% endif %}">
+        <details class="how-to-read"{% if pdf_mode %} open{% endif %}>
+          <summary>How to read this report</summary>
+          <div class="legend-item"><span class="status-badge found">Confirmed</span> The provider's public website clearly supports this finding.</div>
+          <div class="legend-item"><span class="status-badge not_found">Not Confirmed</span> The public website contradicts or does not show this.</div>
+          <div class="legend-item"><span class="status-badge needs_review">Needs Review</span> The public website doesn't provide enough information to confirm it either way.</div>
+          <div class="legend-item"><span class="status-badge internal">Human Confirmation</span> This can't be checked from a public website — it needs internal records or reviewer judgment.</div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FINDINGS ============ -->
+    <section class="panel{% if pdf_mode %} pdf-page-break{% endif %}" id="panel-findings" role="tabpanel" aria-labelledby="tab-findings" {% if not pdf_mode %}hidden{% endif %}>
+      {% if pdf_mode %}<h2 class="pdf-section-title">Findings</h2>{% else %}
+      <div class="toolbar-row">
+        <button class="filter-btn" aria-pressed="true" data-filter="all">All</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="found">Confirmed</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="not_found">Not Confirmed</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="needs_review">Needs Review</button>
+        <label for="finding-search" class="visually-hidden" style="position:absolute; left:-9999px;">Search findings</label>
+        <input class="search-input" id="finding-search" type="search" placeholder="Search findings…">
+      </div>
+      {% endif %}
+
+      {% if interactive %}
+      <form method="post" action="/applications/{{ app_id }}/regenerate" style="margin-bottom: var(--s4);">
+        <button class="btn" type="submit" onclick="return confirm('Re-run website research from scratch? Reviewer notes and overrides are kept.');">↻ Regenerate report</button>
+      </form>
+      {% endif %}
+
+      <div id="findings-list">
+      {% for f in report.web_findings %}
+        <details class="finding-card" data-status="{{ f.status }}" data-search="{{ (f.question ~ ' ' ~ f.note)|lower }}"{% if pdf_mode %} open{% endif %}>
+          <summary>
+            <span class="status-badge {{ f.status }}">{{ status_labels[f.status] }}</span>
+            <span class="summary-text">
+              <span class="q">{{ f.question }}</span>
+              <span class="one-liner">{{ f.display_short_note }}</span>
+            </span>
+            {% if not pdf_mode %}<span class="chev" aria-hidden="true">›</span>{% endif %}
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                {{ "Yes" if f.form_answer == "yes" else "No" if f.form_answer == "no" else "Not indicated" }}</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge {{ f.status }}">{{ status_labels[f.status] }}</span></div>
+            </div>
+            <div>{{ f.note }}</div>
+            {% if f.quoted_snippet %}<div class="finding-quote">&ldquo;{{ f.quoted_snippet }}&rdquo;</div>{% endif %}
+
+            {% if f.evidence %}
+            <div class="evidence-row">
+              {% for e in f.evidence %}
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="{{ e | evidence_rel_path }}" data-label="{{ e.label }}" data-url="{{ e.url }}"
+                data-time="{{ e.captured_at.strftime('%Y-%m-%d %H:%M UTC') }}" data-evidence-id="{{ e.evidence_id }}">
+                <div class="thumb-crop"><img src="{{ e | evidence_rel_path }}" alt="{{ e.label }}"{% if not pdf_mode %} loading="lazy"{% endif %}></div>
+                <div class="cap">{{ e.label }}</div>
+              </button>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if f.reviewer_overridden %}
+            <div class="overridden-tag">✎ Reviewer decision — system originally said {{ status_labels[f.original_status] }}</div>
+            {% endif %}
+            {% if f.reviewed %}<div class="overridden-tag" style="color: var(--found-fg);">✓ Reviewed</div>{% endif %}
+
+            {% if interactive %}
+            <div class="btn-row">
+              {% if not f.reviewed %}
+              <form method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/mark-reviewed">
+                <button class="btn" type="submit">Mark reviewed</button>
+              </form>
+              {% elif f.reviewer_overridden %}
+              <form method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/restore" onsubmit="return confirm('Restore the system\'s original result? Your override note will be kept in the history but no longer applied.');">
+                <button class="btn" type="submit">Restore system result</button>
+              </form>
+              {% else %}
+              <form method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/restore">
+                <button class="btn" type="submit">Undo (mark as not reviewed)</button>
+              </form>
+              {% endif %}
+            </div>
+            <details class="edit-disclosure">
+              <summary>Change status / add a note</summary>
+              <form class="edit-form" method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/override">
+                <select name="status" aria-label="Status for {{ f.question }}">
+                  {% for s in ["found", "not_found", "needs_review"] %}
+                  <option value="{{ s }}" {% if s == f.status %}selected{% endif %}>{{ status_labels[s] }}</option>
+                  {% endfor %}
+                </select>
+                <textarea name="note" aria-label="Reviewer note for {{ f.question }}" placeholder="Reviewer note...">{{ f.note }}</textarea>
+                <button class="btn primary" type="submit">Save</button>
+              </form>
+            </details>
+            {% endif %}
+          </div>
+        </details>
+      {% endfor %}
+      </div>
+      <p id="no-results-msg" style="display:none; color: var(--muted);">No findings match your filters.</p>
+    </section>
+
+    <!-- ============ EVIDENCE ============ -->
+    <section class="panel" id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" {% if not pdf_mode %}hidden{% endif %} style="max-width: 1000px;">
+      {% if pdf_mode %}<h2 class="pdf-section-title pdf-section-divider">Evidence</h2>{% else %}
+      <div class="toolbar-row">
+        <label for="evidence-filter" style="font-size:13px; color:var(--muted);">Filter by finding:</label>
+        <select id="evidence-filter" class="search-input" style="flex:0 0 auto;">
+          <option value="all">All evidence</option>
+          {% for cid, question in report.criterion_questions.items() %}
+          <option value="{{ cid }}">{{ question[:60] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="evidence-grid" id="evidence-grid">
+        {% for e, criterion_ids in report.all_evidence %}
+        <div class="evidence-card" data-criteria="{{ criterion_ids|join(',') }}">
+          <div class="thumb js-open-evidence"
+            data-src="{{ e | evidence_rel_path }}" data-label="{{ e.label }}" data-url="{{ e.url }}"
+            data-time="{{ e.captured_at.strftime('%Y-%m-%d %H:%M UTC') }}" data-evidence-id="{{ e.evidence_id }}"
+            role="button" tabindex="0" aria-label="View evidence: {{ e.label }}">
+            <img src="{{ e | evidence_rel_path }}" alt="{{ e.label }}"{% if not pdf_mode %} loading="lazy"{% endif %}>
+          </div>
+          <div class="meta">
+            <strong>{{ e.label }}</strong>
+            {{ "Full page" if e.evidence_type == "whole_page" else "Targeted" }} · {{ e.method }}<br>
+            {% if e.page_title %}{{ e.page_title }}<br>{% endif %}
+            {{ e.url }}<br>
+            Captured {{ e.captured_at.strftime("%Y-%m-%d %H:%M UTC") }}<br>
+            ID: {{ e.evidence_id }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ============ INTERNAL CHECKS ============ -->
+    <section class="panel" id="panel-internal" role="tabpanel" aria-labelledby="tab-internal" {% if not pdf_mode %}hidden{% endif %}>
+      {% if pdf_mode %}<h2 class="pdf-section-title pdf-section-divider">Internal Checks</h2>{% endif %}
+      <div class="info-box">
+        These items can't be checked from a public website by design — they depend on internal
+        records (budget, Life Plan, provider screening documents) or reviewer judgment. They are
+        not failed checks; they're simply out of the website's reach.
+        {% if interactive %}<br><strong>{{ report.internal_reviewed_count }} of {{ report.total_internal }}</strong> internal checks completed.{% endif %}
+      </div>
+      {% set groups = {} %}
+      {% for f in report.internal_findings %}
+        {% if f.group not in groups %}{% set _ = groups.update({f.group: []}) %}{% endif %}
+        {% set _ = groups[f.group].append(f) %}
+      {% endfor %}
+      {% for group_name, group_findings in groups.items() %}
+      <div class="card internal-group">
+        <h3>{{ group_name }}</h3>
+        {% for f in group_findings %}
+        <div class="internal-item">
+          <div class="q">{{ f.question }}</div>
+          <div class="explain">{{ f.note }}</div>
+          {% if f.form_answer %}<div class="explain">Application answer: {{ "Yes" if f.form_answer == "yes" else "No" }}</div>{% endif %}
+
+          {% if f.reviewer_overridden %}
+          <div class="overridden-tag">✎ Reviewer note added{% if f.original_note and f.original_note != f.note %} — original: {{ f.original_note }}{% endif %}</div>
+          {% endif %}
+          {% if f.reviewed %}<div class="overridden-tag" style="color: var(--found-fg);">✓ Completed</div>{% endif %}
+
+          {% if interactive %}
+          <div class="btn-row">
+            {% if not f.reviewed %}
+            <form method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/mark-reviewed">
+              <button class="btn" type="submit">Mark completed</button>
+            </form>
+            {% elif f.reviewer_overridden %}
+            <form method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/restore" onsubmit="return confirm('Restore the original note? Your note will be kept in the history but no longer applied.');">
+              <button class="btn" type="submit">Restore original</button>
+            </form>
+            {% else %}
+            <form method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/restore">
+              <button class="btn" type="submit">Undo (mark as not completed)</button>
+            </form>
+            {% endif %}
+          </div>
+          <details class="edit-disclosure">
+            <summary>Confirm / challenge application answer, add a note</summary>
+            <form class="edit-form" method="post" action="/applications/{{ app_id }}/findings/{{ f.criterion_id }}/override">
+              <input type="hidden" name="status" value="internal">
+              <textarea name="note" aria-label="Reviewer note for {{ f.question }}" placeholder="Confirm, challenge, or add context...">{{ f.note }}</textarea>
+              <input type="text" name="document" class="search-input" style="flex:0 0 220px;" placeholder="Document checked (optional)">
+              <button class="btn primary" type="submit">Save</button>
+            </form>
+          </details>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </section>
+
+    <!-- ============ REVIEW & EXPORT ============ -->
+    <section class="panel" id="panel-export" role="tabpanel" aria-labelledby="tab-export" {% if not pdf_mode %}hidden{% endif %}>
+      {% if pdf_mode %}<h2 class="pdf-section-title pdf-section-divider">Review &amp; Export</h2>{% endif %}
+      <div class="card">
+        <h2>Completion status</h2>
+        <div class="checklist-item"><span class="status-badge {{ 'found' if report.reviewed_count == report.total_reviewable else 'needs_review' }}">{{ "Done" if report.reviewed_count == report.total_reviewable else "In progress" }}</span>
+          {{ report.reviewed_count }} of {{ report.total_reviewable }} website findings reviewed</div>
+        <div class="checklist-item"><span class="status-badge {{ 'found' if report.internal_reviewed_count == report.total_internal else 'needs_review' }}">{{ "Done" if report.internal_reviewed_count == report.total_internal else "In progress" }}</span>
+          {{ report.internal_reviewed_count }} of {{ report.total_internal }} internal checks completed</div>
+        <div class="checklist-item"><span class="status-badge internal">Overall</span>
+          {{ report.overall_reviewed_count }} of {{ report.overall_total }} total review items addressed</div>
+        <div class="checklist-item"><span class="status-badge {{ 'not_found' if report.summary_counts.not_found else 'found' }}">{{ report.summary_counts.not_found }}</span>
+          item(s) Not Confirmed</div>
+        <div class="checklist-item"><span class="status-badge {{ 'needs_review' if report.summary_counts.needs_review else 'found' }}">{{ report.summary_counts.needs_review }}</span>
+          item(s) Needs Review</div>
+        {% if report.unconfirmed_evidence_findings %}
+        <div class="warn-box" style="margin-top:var(--s3);">
+          <strong>{{ report.unconfirmed_evidence_findings|length }} Confirmed finding(s) are missing a backing
+          evidence capture</strong> — resolve these before export; they will be listed in
+          <code>validation_issues</code> in the exported JSON either way.
+        </div>
+        {% endif %}
+        <div class="checklist-item" style="margin-top:var(--s3);">Generated {{ report.generated_at.strftime("%Y-%m-%d %H:%M UTC") }}</div>
+        <div class="checklist-item">Run reference: {{ report.application_id }}</div>
+      </div>
+
+      {% if interactive %}
+      <div class="card">
+        <h2>Download</h2>
+        {% if report.is_review_complete %}
+        <p style="font-size:14px; margin-top:0;">All findings and internal checks have been reviewed — this is a
+          <strong>completed review package</strong>.</p>
+        {% else %}
+        <p style="font-size:14px; margin-top:0; color:var(--review-fg);">
+          {{ report.overall_total - report.overall_reviewed_count }} item(s) still need reviewer attention —
+          exporting now produces a <strong>draft package</strong>. You can export again once review is complete.</p>
+        {% endif %}
+        <div class="btn-row">
+          <a class="btn primary" href="/applications/{{ app_id }}/export/report.pdf" download>
+            {{ "Download completed report (PDF)" if report.is_review_complete else "Download draft report (PDF)" }}
+          </a>
+          <a class="btn" href="/applications/{{ app_id }}/export/package.zip" download>
+            {{ "Download completed package (.zip)" if report.is_review_complete else "Download draft package (.zip)" }}
+          </a>
+        </div>
+        <p style="color:var(--muted); font-size:13px; margin: 12px 0 4px;">
+          The PDF is the recommended format to save, print, or share to an audit file — one
+          self-contained document with the full report and every evidence capture embedded.
+        </p>
+        <details style="margin-top:8px;">
+          <summary style="cursor:pointer; color:var(--accent); font-size:13px;">More formats</summary>
+          <div class="btn-row" style="margin-top:10px;">
+            <a class="btn" href="/applications/{{ app_id }}/export/report.html" download>Download report (HTML)</a>
+            <a class="btn" href="/applications/{{ app_id }}/export/report.json" download>Download structured data (JSON)</a>
+          </div>
+          <p style="color:var(--muted); font-size:13px; margin: 10px 0 0;">
+            The complete package includes the PDF, HTML report, every evidence capture, a
+            structured report.json, and your reviewer overrides — everything needed for the
+            audit file.
+          </p>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>Start another review</h2>
+        <a class="btn" href="/">Upload another application →</a>
+      </div>
+      {% endif %}
+    </section>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  Generated by the Pre-Approval Website-Verification Tool. This report assists a human
+  reviewer and does not itself approve or deny this request.
+</footer>
+
+<dialog id="lightbox" aria-label="Evidence viewer">
+  <div class="lb-head">
+    <span id="lightbox-caption"></span>
+    <div class="lb-controls">
+      <button type="button" id="lb-zoom-toggle">Fit to width</button>
+      <a id="lb-download" download>Download</a>
+      <button type="button" onclick="document.getElementById('lightbox').close()" aria-label="Close">✕ Close</button>
+    </div>
+  </div>
+  <div class="lb-body" id="lb-body"><img id="lightbox-img" src="" alt=""></div>
+  <div class="lb-foot">
+    <span id="lb-url"></span>
+    <span id="lb-time"></span>
+    <span id="lb-id"></span>
+  </div>
+</dialog>
+
+{% if not pdf_mode %}
+<script>
+  // ---------- Tabs ----------
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+  function activateTab(tabId, updateHash) {
+    tabs.forEach((t) => {
+      const selected = t.id === tabId;
+      t.setAttribute('aria-selected', String(selected));
+      t.tabIndex = selected ? 0 : -1;
+    });
+    panels.forEach((p) => { p.hidden = ('tab-' + p.id.replace('panel-', '')) !== tabId; });
+    if (updateHash) history.replaceState(null, '', '#' + tabId.replace('tab-', ''));
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => activateTab(tab.id, true));
+    tab.addEventListener('keydown', (e) => {
+      let next = null;
+      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+      if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+      if (next) { next.focus(); activateTab(next.id, true); e.preventDefault(); }
+    });
+  });
+  const initialHash = window.location.hash.replace('#', '');
+  const initialTab = document.getElementById('tab-' + initialHash);
+  activateTab(initialTab ? initialTab.id : 'tab-overview', false);
+
+  // ---------- Findings filter + search ----------
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const findingCards = document.querySelectorAll('#findings-list .finding-card');
+  const searchInput = document.getElementById('finding-search');
+  const noResultsMsg = document.getElementById('no-results-msg');
+  let activeFilter = 'all';
+
+  function applyFindingsFilter() {
+    const term = (searchInput.value || '').toLowerCase();
+    let visibleCount = 0;
+    findingCards.forEach((card) => {
+      const statusOk = activeFilter === 'all' || card.dataset.status === activeFilter;
+      const searchOk = !term || card.dataset.search.indexOf(term) !== -1;
+      const show = statusOk && searchOk;
+      card.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    noResultsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+      activeFilter = btn.dataset.filter;
+      applyFindingsFilter();
+    });
+  });
+  searchInput.addEventListener('input', applyFindingsFilter);
+
+  // ---------- Evidence filter ----------
+  const evidenceFilter = document.getElementById('evidence-filter');
+  const evidenceCards = document.querySelectorAll('#evidence-grid .evidence-card');
+  evidenceFilter.addEventListener('change', () => {
+    const val = evidenceFilter.value;
+    evidenceCards.forEach((card) => {
+      const criteria = card.dataset.criteria.split(',');
+      card.style.display = (val === 'all' || criteria.indexOf(val) !== -1) ? '' : 'none';
+    });
+  });
+
+  // ---------- Lightbox ----------
+  const lightbox = document.getElementById('lightbox');
+  const lbBody = document.getElementById('lb-body');
+  const lbZoomToggle = document.getElementById('lb-zoom-toggle');
+  let fitFull = false;
+
+  function openLightbox(src, caption, url, time, evidenceId) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption;
+    document.getElementById('lb-download').href = src;
+    document.getElementById('lb-url').textContent = url;
+    document.getElementById('lb-time').textContent = time;
+    document.getElementById('lb-id').textContent = 'ID: ' + evidenceId;
+    fitFull = false;
+    lbBody.classList.remove('fit-full');
+    lbZoomToggle.textContent = 'Full resolution';
+    lightbox.showModal();
+  }
+  lbZoomToggle.addEventListener('click', () => {
+    fitFull = !fitFull;
+    lbBody.classList.toggle('fit-full', fitFull);
+    lbZoomToggle.textContent = fitFull ? 'Fit to width' : 'Full resolution';
+  });
+  // Native <dialog> already provides Escape-to-close and focus containment
+  // while open; the page behind is inert for pointer/keyboard interaction.
+
+  // Event delegation (not inline onclick) — evidence labels/urls can contain
+  // quote characters that would otherwise break an inline HTML attribute.
+  function triggerFromEvidenceEl(el) {
+    openLightbox(el.dataset.src, el.dataset.label, el.dataset.url, el.dataset.time, el.dataset.evidenceId);
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('.js-open-evidence');
+    if (el) triggerFromEvidenceEl(el);
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('js-open-evidence')) {
+      e.preventDefault();
+      triggerFromEvidenceEl(e.target);
+    }
+  });
+</script>
+{% endif %}
+</body>
+</html>

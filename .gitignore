@@ -1,0 +1,33 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# uv
+uv.lock.bak
+
+# Generated run output (evidence + reports) — committed sample outputs are the
+# exception and live under output/samples/, which is explicitly NOT ignored below.
+output/runs/
+output/tmp/
+
+# Non-technical "Manage Checklists" drafts — in-progress, unreviewed checklist
+# authoring state; never committed until explicitly published to config/checklists/.
+data/checklist_drafts/
+
+# Playwright
+**/test-results/
+**/playwright-report/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

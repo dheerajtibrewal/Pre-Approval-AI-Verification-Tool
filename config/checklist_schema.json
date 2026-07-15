@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pre-Approval Checklist Config",
+  "description": "One file per form category. Adding a new category means adding a new file matching this schema — the orchestration engine reads this data, it never hard-codes category logic.",
+  "type": "object",
+  "required": ["category_id", "display_name", "form_template_signature", "fields", "criteria"],
+  "properties": {
+    "category_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "display_name": { "type": "string" },
+    "appeal_of": {
+      "type": "string",
+      "description": "category_id of the base category this appeal re-runs checks against (Appeals only)."
+    },
+    "form_template_signature": {
+      "type": "array",
+      "description": "Distinctive strings expected in the PDF text layer that identify this form type.",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "item_name_field": {
+      "type": "string",
+      "description": "field id whose value names the specific class/item/membership/program being requested — used generically by fee_match and exclusion_list checks so the evaluator never hard-codes a field name per category."
+    },
+    "fee_field": {
+      "type": "string",
+      "description": "field id holding the fee/price stated on the form, used generically by fee_match checks."
+    },
+    "fields": {
+      "type": "array",
+      "description": "Header fields to extract from the form.",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "type"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "enum": ["string", "number", "currency", "url", "date"] },
+          "required": { "type": "boolean", "default": true },
+          "pii": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "verifiable", "check_type", "evidence_label"],
+        "properties": {
+          "id": { "type": "string" },
+          "question": { "type": "string" },
+          "verifiable": {
+            "enum": ["web", "internal", "document"],
+            "description": "web = tool checks it; internal = human/back-office only, never guessed; document = needs an uploaded letter/attachment, not the website."
+          },
+          "check_type": {
+            "enum": ["rule", "llm_judgment", "fee_match", "exclusion_list"],
+            "description": "rule = deterministic code path; llm_judgment = grounded LLM call over captured page text, still schema-validated; fee_match = numeric comparison with tolerance; exclusion_list = deterministic keyword/category match against an exclusion list."
+          },
+          "evidence_label": {
+            "type": "string",
+            "description": "Label burned into the targeted evidence screenshot, e.g. 'Evidence: published fees'."
+          },
+          "exclusion_list": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "caps": {
+            "type": "object",
+            "description": "Numeric thresholds referenced by fee_match checks, e.g. {\"per_session\": 111, \"per_year\": 500}."
+          },
+          "notes": { "type": "string" },
+          "explanation": {
+            "type": "string",
+            "description": "Criterion-specific, plain-language reason an internal/document criterion can't be checked from the website (e.g. 'Requires the participant's approved budget record'). Shown instead of a generic boilerplate line."
+          },
+          "form_question": {
+            "type": "string",
+            "description": "Verbatim question text as it appears on the PDF form's YES/NO checklist table, used to locate and parse the applicant's own checked answer. Defaults to `question` if omitted; set explicitly whenever `question` has been reworded/annotated for report readability (e.g. a '(must be NO)' suffix added for clarity) so the verbatim match still succeeds."
+          },
+          "group": {
+            "type": "string",
+            "description": "Display grouping for internal criteria, e.g. 'Budget and funding', 'Participant plan and outcomes', 'Provider and programme eligibility', 'Duplication of services', 'Reimbursement and invoicing'."
+          }
+        }
+      }
+    }
+  }
+}

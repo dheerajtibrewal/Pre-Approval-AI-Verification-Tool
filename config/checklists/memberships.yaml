@@ -1,0 +1,94 @@
+# Health Club / Organizational Memberships Pre-approval Checklist — config-driven definition.
+# Source: docs/Project-Brief.pdf §4, §5 and the real
+# "Health Club / Organizational Memberships Pre-approval Checklist" (see
+# samples/Sample-04, Sample-05). Adding a new category = adding a new file
+# like this one; the engine has no category-specific code.
+
+category_id: memberships
+display_name: "Health Club / Organizational Membership"
+
+form_template_signature:
+  - "Health Club / Organizational Memberships Pre-approval Checklist"
+  - "Is the organization open to the public"
+
+item_name_field: membership_name
+fee_field: membership_fee_amount
+
+fields:
+  - { id: participant_name, label: "Participant's Name", type: string, pii: true }
+  - { id: participant_age, label: "Participant's Age", type: number }
+  - { id: fi_coordinator_name, label: "FI Coordinator Name", type: string }
+  - { id: broker_name, label: "Broker Name", type: string }
+  - { id: membership_name, label: "Membership Name", type: string }
+  - { id: provider_name, label: "Name of Provider/Vendor", type: string }
+  - { id: webpage_url, label: "Link to Webpage", type: url }
+  - { id: place_of_publication, label: "Place of Publication", type: string, required: false }
+  - { id: membership_fee_amount, label: "Membership Fee (Amount)", type: currency }
+  - { id: billing_frequency, label: "Billing", type: string }
+
+criteria:
+  # --- Website-verifiable ---
+  - id: open_to_public
+    question: "Is the organization open to the public and not a private/invitation-only club?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: open to the public"
+
+  - id: published_fees
+    question: "Does the organization publish membership fees?"
+    verifiable: web
+    check_type: llm_judgment
+    evidence_label: "Evidence: published fees"
+
+  - id: fee_match
+    question: "Does the published membership fee match the amount stated on the form?"
+    verifiable: web
+    check_type: fee_match
+    evidence_label: "Evidence: fee comparison"
+    caps: { tolerance_pct: 10 }
+    notes: >
+      Membership pricing pages often list multiple tiers/billing frequencies
+      (monthly vs. yearly, individual vs. family); confirm the published
+      price shown matches the billing frequency stated on the form.
+
+  # --- Internal / not website-verifiable ---
+  - id: budget_approved
+    question: "Is Health-club/Organizational Membership currently approved in the budget?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Budget and funding"
+    explanation: "Requires the participant's approved Self-Direction budget record showing this membership category as approved."
+
+  - id: community_inclusion
+    question: "Does the membership provide opportunity for community inclusion?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires the participant's Life Plan narrative and reviewer judgment on whether this membership supports a community-inclusion goal."
+
+  - id: health_safety_fit
+    question: "Does the membership accommodate the individual's health and/or safety needs?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires participant-specific health/safety documentation from the Life Plan — not published on a public website."
+
+  - id: independence_substitute
+    question: "Does the membership increase independence or substitute for human assistance?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Participant plan and outcomes"
+    explanation: "Requires the participant's Life Plan goals and reviewer judgment on how this membership relates to them."
+
+  - id: exclusive_benefit
+    question: "Is the membership provided exclusively toward the benefit of the participant? (not family, must be YES)"
+    form_question: "Is the membership provided exclusively toward the benefit of the participant?"
+    verifiable: internal
+    check_type: rule
+    evidence_label: ""
+    group: "Provider and programme eligibility"
+    explanation: "Requires confirmation from the FI Coordinator/Broker that this is not a family or dual membership — IDGS funds do not cover shared memberships."

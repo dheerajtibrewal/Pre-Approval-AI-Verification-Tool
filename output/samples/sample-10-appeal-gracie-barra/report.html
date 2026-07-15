@@ -1,0 +1,1205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Approval Review — Gracie Barra</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f6fa; --surface: #ffffff; --border: #dfe4ec; --text: #0f1f3d; --muted: #5b6b85; --accent: #1558d6; --accent-dark: #0f3fa3;
+    --found-bg: #eaf7ee; --found-fg: #1e7a42; --found-border: #bfe6cc;
+    --notfound-bg: #fdecec; --notfound-fg: #b42318; --notfound-border: #f6cbc7;
+    --review-bg: #fff6e0; --review-fg: #8a5b00; --review-border: #f0dca0;
+    --internal-bg: #eef1f6; --internal-fg: #475467; --internal-border: #dbe0e8;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow-sm: 0 1px 2px rgba(15, 31, 61, 0.05);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5; font-size: 15px;
+  }
+  a { color: var(--accent); }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Header ---------- */
+  .product-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
+    padding: var(--s3) var(--s6); background: var(--text); color: #fff;
+  }
+  .product-bar .product-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+  .product-bar .product-name .dot { width: 8px; height: 8px; border-radius: 50%; background: #5b9dff; display: inline-block; }
+  .product-bar .new-review {
+    font-size: 13px; font-weight: 600; color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,0.35);
+    padding: 6px 14px; border-radius: var(--radius-sm);
+  }
+  .product-bar .new-review:hover { background: rgba(255,255,255,0.1); }
+  .app-header {
+    padding: var(--s4) var(--s6); border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .app-header .eyebrow { color: var(--muted); font-size: 13px; }
+  .app-header h1 { font-size: 22px; font-weight: 700; margin: 4px 0 10px; letter-spacing: -0.01em; }
+  .app-header .meta-row { display: flex; flex-wrap: wrap; gap: var(--s4); color: var(--muted); font-size: 13px; align-items: center; }
+  .progress-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .count-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: var(--s3); }
+  .count-pill {
+    font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  @media (max-width: 600px) {
+    .product-bar { padding: var(--s3) var(--s4); }
+    .app-header { padding: var(--s4); }
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
+  nav.tabs {
+    flex: 0 0 220px; position: sticky; top: 0; align-self: flex-start;
+    padding: var(--s5) var(--s3); display: flex; flex-direction: column; gap: 2px;
+  }
+  nav.tabs button {
+    text-align: left; border: none; background: none; color: var(--muted); padding: 10px 14px;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 14.5px; font-weight: 500;
+  }
+  nav.tabs button:hover { background: var(--surface); }
+  nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 700; }
+  main.content { flex: 1; min-width: 0; padding: var(--s5) var(--s6) var(--s7); }
+  .panel { max-width: 760px; }
+  .panel[hidden] { display: none; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--s5); margin-bottom: var(--s4); box-shadow: var(--shadow-sm);
+  }
+  .card h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0 0 var(--s4); font-weight: 700; }
+  .kv-grid { display: grid; grid-template-columns: 150px 1fr; gap: var(--s3) var(--s4); font-size: 14.5px; }
+  .kv-grid dt { color: var(--muted); } .kv-grid dd { margin: 0; word-break: break-word; }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 12px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .status-badge.found { background: var(--found-bg); color: var(--found-fg); border-color: var(--found-border); }
+  .status-badge.not_found { background: var(--notfound-bg); color: var(--notfound-fg); border-color: var(--notfound-border); }
+  .status-badge.needs_review { background: var(--review-bg); color: var(--review-fg); border-color: var(--review-border); }
+  .status-badge.internal { background: var(--internal-bg); color: var(--internal-fg); border-color: var(--internal-border); }
+
+  .warn-box, .info-box {
+    background: var(--review-bg); color: var(--review-fg); border: 1px solid var(--review-border);
+    border-radius: var(--radius-sm); padding: var(--s3) var(--s4); font-size: 14px; margin-bottom: var(--s4);
+  }
+  .info-box { background: var(--internal-bg); color: var(--internal-fg); border-color: var(--internal-border); }
+
+  /* ---------- Overview ---------- */
+  .attention-list { list-style: none; margin: 0; padding: 0; }
+  .attention-list li {
+    display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) 0; border-top: 1px solid var(--border);
+  }
+  .attention-list li:first-child { border-top: none; }
+  .next-action { font-size: 15px; padding: var(--s4); background: var(--bg); border-radius: var(--radius-sm); }
+  details.how-to-read summary { cursor: pointer; font-size: 13.5px; color: var(--accent); }
+  .legend-item { display: flex; gap: 10px; padding: 8px 0; font-size: 13.5px; }
+
+  /* ---------- Findings ---------- */
+  .toolbar-row { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; margin-bottom: var(--s4); }
+  .filter-btn {
+    font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); padding: 6px 13px; border-radius: 999px; cursor: pointer;
+  }
+  .filter-btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .search-input {
+    flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text);
+  }
+  details.finding-card {
+    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--s3); background: var(--surface);
+  }
+  details.finding-card summary {
+    list-style: none; cursor: pointer; padding: var(--s4); display: flex; gap: var(--s3); align-items: center;
+  }
+  details.finding-card summary::-webkit-details-marker { display: none; }
+  details.finding-card summary .chev { margin-left: auto; color: var(--muted); transition: transform 0.15s; }
+  details.finding-card[open] summary .chev { transform: rotate(90deg); }
+  .summary-text { flex: 1; min-width: 0; }
+  .summary-text .q { font-weight: 600; font-size: 14.5px; }
+  .summary-text .one-liner { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .finding-body { padding: 0 var(--s4) var(--s4); border-top: 1px solid var(--border); margin-top: 0; }
+  .answer-compare { display: flex; gap: var(--s6); margin: var(--s4) 0; flex-wrap: wrap; }
+  .answer-compare div { font-size: 13.5px; } .answer-compare .label { color: var(--muted); display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .finding-quote {
+    font-size: 13.5px; font-style: italic; margin: var(--s3) 0; padding: var(--s3);
+    background: var(--bg); border-left: 3px solid var(--accent); border-radius: 6px;
+  }
+  .evidence-row { display: flex; gap: var(--s3); margin: var(--s3) 0; flex-wrap: wrap; }
+  .evidence-thumb {
+    display: block; width: 180px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; background: var(--bg); cursor: zoom-in; padding: 0; text-align: left; color: var(--text);
+  }
+  .evidence-thumb .thumb-crop { width: 100%; height: 110px; overflow: hidden; }
+  .evidence-thumb img { width: 100%; display: block; object-fit: cover; object-position: top; }
+  .evidence-thumb .cap { font-size: 11px; padding: 6px 8px; color: var(--muted); }
+  .overridden-tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--accent);
+    margin: var(--s2) 0; text-transform: uppercase; letter-spacing: 0.04em; }
+  details.edit-disclosure { margin-top: var(--s3); }
+  details.edit-disclosure summary { cursor: pointer; font-size: 12.5px; color: var(--accent); list-style: none; padding: 0; }
+  .edit-form { display: flex; gap: var(--s2); margin-top: var(--s2); flex-wrap: wrap; align-items: flex-start; }
+  .edit-form select, .edit-form textarea {
+    border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; background: var(--surface); color: var(--text);
+  }
+  .edit-form textarea { flex: 1; min-width: 200px; min-height: 40px; }
+  .btn-row { display: flex; gap: var(--s2); margin-top: var(--s3); flex-wrap: wrap; }
+  .btn, .edit-form button, .toolbar button {
+    font: inherit; font-weight: 600; font-size: 13px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none;
+    display: inline-block; min-height: 34px;
+  }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ---------- Evidence tab ---------- */
+  .evidence-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s4); }
+  .evidence-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .evidence-card .thumb { height: 140px; overflow: hidden; cursor: zoom-in; background: var(--bg); }
+  .evidence-card .thumb img { width: 100%; object-fit: cover; object-position: top; }
+  .evidence-card .meta { padding: var(--s3); font-size: 12px; color: var(--muted); }
+  .evidence-card .meta strong { color: var(--text); display: block; font-size: 13px; margin-bottom: 4px; }
+
+  /* ---------- Internal checks ---------- */
+  .internal-group { margin-bottom: var(--s5); }
+  .internal-group h3 { font-size: 14px; margin: 0 0 var(--s3); }
+  .internal-item { border-top: 1px solid var(--border); padding: var(--s3) 0; }
+  .internal-item:first-child { border-top: none; }
+  .internal-item .q { font-weight: 600; font-size: 14px; }
+  .internal-item .explain { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+
+  /* ---------- Export ---------- */
+  .checklist-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 14px; }
+
+  /* ---------- Lightbox ---------- */
+  #lightbox { border: none; border-radius: 16px; padding: 0; max-width: 94vw; max-height: 94vh; background: var(--surface); }
+  #lightbox::backdrop { background: rgba(0,0,0,0.65); }
+  #lightbox .lb-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
+    padding: var(--s3) var(--s4); border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  #lightbox .lb-controls { display: flex; gap: 6px; }
+  #lightbox .lb-controls button, #lightbox .lb-controls a {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px;
+    padding: 5px 10px; border-radius: 7px; cursor: pointer; text-decoration: none;
+  }
+  #lightbox .lb-body { overflow: auto; max-height: 76vh; text-align: center; background: var(--bg); }
+  #lightbox .lb-body img { display: inline-block; max-width: 100%; }
+  #lightbox .lb-body.fit-full img { max-width: none; }
+  #lightbox .lb-foot { padding: var(--s3) var(--s4); font-size: 12px; color: var(--muted); display: flex; gap: var(--s4); flex-wrap: wrap; }
+
+  footer.site-footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: var(--s6) 0; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    nav.tabs {
+      flex: 0 0 auto; flex-direction: row; position: sticky; top: 0; z-index: 5; width: 100%; overflow-x: auto;
+      background: var(--bg); border-bottom: 1px solid var(--border); padding: var(--s2) var(--s3);
+      gap: var(--s2);
+    }
+    nav.tabs button { flex: 0 0 auto; white-space: nowrap; }
+    main.content { padding: var(--s4); width: 100%; }
+    .kv-grid { grid-template-columns: 1fr; }
+    .kv-grid dt { font-weight: 600; }
+    .evidence-thumb { width: 100%; }
+    .answer-compare { gap: var(--s4); }
+  }
+</style>
+</head>
+<body>
+
+<div class="product-bar">
+  <span class="product-name"><span class="dot" aria-hidden="true"></span> Pre-Approval Verification</span>
+  <a class="new-review" href="/">New review</a>
+</div>
+
+<header class="app-header">
+  <div class="eyebrow">Pre-Approval Appeal · Website Verification Report</div>
+  <h1>Adult Group Jiu Jitsu — Gracie Barra</h1>
+  <div class="meta-row">
+    <span>Run Sample-10---Appeal-Gracie-Barra-Jiu-Jitsu</span>
+    <span>Generated Jul 14, 2026 23:02 UTC</span>
+    
+  </div>
+  <div class="count-badges">
+    <span class="count-pill">✓ 4 Confirmed</span>
+    <span class="count-pill">✕ 0 Not Confirmed</span>
+    <span class="count-pill">? 4 Needs Review</span>
+    <span class="count-pill">— 12 Human Confirmation</span>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="tabs" role="tablist" aria-label="Report sections">
+    <button role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" data-tab="overview">Overview</button>
+    <button role="tab" id="tab-findings" aria-controls="panel-findings" aria-selected="false" tabindex="-1" data-tab="findings">Findings</button>
+    <button role="tab" id="tab-evidence" aria-controls="panel-evidence" aria-selected="false" tabindex="-1" data-tab="evidence">Evidence</button>
+    <button role="tab" id="tab-internal" aria-controls="panel-internal" aria-selected="false" tabindex="-1" data-tab="internal">Internal Checks</button>
+    <button role="tab" id="tab-export" aria-controls="panel-export" aria-selected="false" tabindex="-1" data-tab="export">Review &amp; Export</button>
+  </nav>
+
+  <main class="content">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+
+      
+      <div class="warn-box"><strong>Appeal — original denial reason:</strong> Published fees could not be verified on the provider’s website.
+        <br>Findings below are framed against this stated reason.</div>
+      
+      
+
+      <div class="card">
+        <h2>Request at a glance</h2>
+        <dl class="kv-grid">
+          <dt>Participant</dt><dd>Yosef B.</dd>
+          <dt>Provider</dt><dd>Gracie Barra</dd>
+          <dt>Requested item</dt><dd>Adult Group Jiu Jitsu</dd>
+          <dt>Category</dt><dd>Pre-Approval Appeal</dd>
+          <dt>Source website</dt>
+          <dd><a href="https://graciebarra.com" target="_blank" rel="noopener">graciebarra.com</a></dd>
+          <dt>Submitted fee</dt><dd>$30</dd>
+        </dl>
+      </div>
+
+      
+      
+      <div class="card">
+        <h2>Fee comparison</h2>
+        <div class="status-badge needs_review">Needs Review</div>
+        <p style="margin-bottom:0;">Could not locate a published price for &#39;Adult Group Jiu Jitsu&#39; on the page to compare against the form&#39;s stated fee.</p>
+      </div>
+      
+
+      <div class="card">
+        <h2>What this report tells you</h2>
+        <div class="next-action">
+          <strong>4 of 8</strong> website-verifiable
+          items were confirmed on the provider's public page.
+          
+          <strong>4</strong> items
+          need attention before this can move forward.
+          
+        </div>
+
+        
+        <ul class="attention-list" style="margin-top:16px;">
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Does the class have published fees (a public price is visible)? — The captured page text from Gracie Barra&#39;s website does not contain any mention of fees or pricing for their classes. Thus, the class fees are not published on the website as visible from the provided content. The attached rate sheet mentioned in the appeal justification is not considered from this context. For a final determination, manual review of other pages or sections directly to find published fees may be needed.</span>
+          </li>
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Are the fees identical for both OPWDD and non-OPWDD individuals (no segregated pricing)? — The provided webpage does not contain any information about fees for classes for either OPWDD or non-OPWDD individuals. There is no mention of segregated pricing for these groups, nor any pricing information at all, which prevents verification of identical fees.</span>
+          </li>
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Is there a published schedule of the class? — The page does not provide a published schedule for the &#39;Adult Group Jiu Jitsu&#39; class. It offers general information about the organization and its mission, but lacks specific class times or schedules.</span>
+          </li>
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Does the published fee match the &#34;Fee per Session&#34; stated on the form? — Could not locate a published price for &#39;Adult Group Jiu Jitsu&#39; on the page to compare against the form&#39;s stated fee.</span>
+          </li>
+          
+        </ul>
+        
+      </div>
+
+      <div class="card">
+        <details class="how-to-read">
+          <summary>How to read this report</summary>
+          <div class="legend-item"><span class="status-badge found">Confirmed</span> The provider's public website clearly supports this finding.</div>
+          <div class="legend-item"><span class="status-badge not_found">Not Confirmed</span> The public website contradicts or does not show this.</div>
+          <div class="legend-item"><span class="status-badge needs_review">Needs Review</span> The public website doesn't provide enough information to confirm it either way.</div>
+          <div class="legend-item"><span class="status-badge internal">Human Confirmation</span> This can't be checked from a public website — it needs internal records or reviewer judgment.</div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FINDINGS ============ -->
+    <section class="panel" id="panel-findings" role="tabpanel" aria-labelledby="tab-findings" hidden>
+      <div class="toolbar-row">
+        <button class="filter-btn" aria-pressed="true" data-filter="all">All</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="found">Confirmed</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="not_found">Not Confirmed</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="needs_review">Needs Review</button>
+        <label for="finding-search" class="visually-hidden" style="position:absolute; left:-9999px;">Search findings</label>
+        <input class="search-input" id="finding-search" type="search" placeholder="Search findings…">
+      </div>
+
+      
+
+      <div id="findings-list">
+      
+        <details class="finding-card" data-status="found" data-search="is the class open to and attended by the broader public? the page clearly states &#39;jiu-jitsu for everyone&#39; and mentions &#39;our mission is clear: to teach jiu-jitsu for everyone,&#39; indicating the classes are open to the broader public.">
+          <summary>
+            <span class="status-badge found">Found</span>
+            <span class="summary-text">
+              <span class="q">Is the class open to and attended by the broader public?</span>
+              <span class="one-liner">Jiu-Jitsu classes at Gracie Barra are open to everyone.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge found">Found</span></div>
+            </div>
+            <div>The page clearly states &#39;Jiu-Jitsu for Everyone&#39; and mentions &#39;Our mission is clear: to teach Jiu-Jitsu for Everyone,&#39; indicating the classes are open to the broader public.</div>
+            <div class="finding-quote">&ldquo;At Gracie Barra, our mission is clear: to teach Jiu-Jitsu for Everyone.&rdquo;</div>
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/criterion-open_to_public-1062e1b06b4c9ecb.png" data-label="Evidence: open to the public" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="1062e1b06b4c9ecb">
+                <div class="thumb-crop"><img src="evidence/criterion-open_to_public-1062e1b06b4c9ecb.png" alt="Evidence: open to the public" loading="lazy"></div>
+                <div class="cap">Evidence: open to the public</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="needs_review" data-search="does the class have published fees (a public price is visible)? the captured page text from gracie barra&#39;s website does not contain any mention of fees or pricing for their classes. thus, the class fees are not published on the website as visible from the provided content. the attached rate sheet mentioned in the appeal justification is not considered from this context. for a final determination, manual review of other pages or sections directly to find published fees may be needed.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Does the class have published fees (a public price is visible)?</span>
+              <span class="one-liner">No published fees found on Gracie Barra website.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>The captured page text from Gracie Barra&#39;s website does not contain any mention of fees or pricing for their classes. Thus, the class fees are not published on the website as visible from the provided content. The attached rate sheet mentioned in the appeal justification is not considered from this context. For a final determination, manual review of other pages or sections directly to find published fees may be needed.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="needs_review" data-search="are the fees identical for both opwdd and non-opwdd individuals (no segregated pricing)? the provided webpage does not contain any information about fees for classes for either opwdd or non-opwdd individuals. there is no mention of segregated pricing for these groups, nor any pricing information at all, which prevents verification of identical fees.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Are the fees identical for both OPWDD and non-OPWDD individuals (no segregated pricing)?</span>
+              <span class="one-liner">No fee information found for OPWDD or non-OPWDD.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>The provided webpage does not contain any information about fees for classes for either OPWDD or non-OPWDD individuals. There is no mention of segregated pricing for these groups, nor any pricing information at all, which prevents verification of identical fees.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="found" data-search="is the class subject based (art, dance, martial arts, cooking, etc.)? the page clearly describes brazilian jiu-jitsu as a martial art, confirming that the offering is subject-based in martial arts.">
+          <summary>
+            <span class="status-badge found">Found</span>
+            <span class="summary-text">
+              <span class="q">Is the class subject based (art, dance, martial arts, cooking, etc.)?</span>
+              <span class="one-liner">The class is subject-based as martial arts.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge found">Found</span></div>
+            </div>
+            <div>The page clearly describes Brazilian Jiu-Jitsu as a martial art, confirming that the offering is subject-based in martial arts.</div>
+            <div class="finding-quote">&ldquo;Brazilian Jiu-Jitsu (BJJ), often called the “Gentle Art,” is a martial art rooted in leverage, technique, and strategy over brute strength.&rdquo;</div>
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/criterion-subject_based-03a0788a57e440af.png" data-label="Evidence: subject area / class description" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="03a0788a57e440af">
+                <div class="thumb-crop"><img src="evidence/criterion-subject_based-03a0788a57e440af.png" alt="Evidence: subject area / class description" loading="lazy"></div>
+                <div class="cap">Evidence: subject area / class description</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="found" data-search="does the class provide college credits? (must be no) there is no mention or indication on the page that the jiu jitsu class provides college credits.">
+          <summary>
+            <span class="status-badge found">Found</span>
+            <span class="summary-text">
+              <span class="q">Does the class provide college credits? (must be NO)</span>
+              <span class="one-liner">The site does not mention college credits for the class.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge found">Found</span></div>
+            </div>
+            <div>There is no mention or indication on the page that the Jiu Jitsu class provides college credits.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="found" data-search="is the class clinical in nature (therapy)? (must be no) the gracie barra page describes their offerings as focused on self-defense, fitness, and personal growth. there is no mention of clinical or therapeutic aspects specifically tied to the &#39;adult group jiu jitsu&#39; class or other classes.">
+          <summary>
+            <span class="status-badge found">Found</span>
+            <span class="summary-text">
+              <span class="q">Is the class clinical in nature (therapy)? (must be NO)</span>
+              <span class="one-liner">The class is not described as clinical or therapeutic.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge found">Found</span></div>
+            </div>
+            <div>The Gracie Barra page describes their offerings as focused on self-defense, fitness, and personal growth. There is no mention of clinical or therapeutic aspects specifically tied to the &#39;Adult Group Jiu Jitsu&#39; class or other classes.</div>
+            <div class="finding-quote">&ldquo;Through structured training, students develop not only self-defence skills but also confidence, resilience, and lifelong fitness. It&#39;s a journey of mental and physical transformation—on and off the mats.&rdquo;</div>
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/criterion-not_clinical-72c07e82ed0309a6.png" data-label="Evidence: class description (non-clinical)" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="72c07e82ed0309a6">
+                <div class="thumb-crop"><img src="evidence/criterion-not_clinical-72c07e82ed0309a6.png" alt="Evidence: class description (non-clinical)" loading="lazy"></div>
+                <div class="cap">Evidence: class description (non-clinical)</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="needs_review" data-search="is there a published schedule of the class? the page does not provide a published schedule for the &#39;adult group jiu jitsu&#39; class. it offers general information about the organization and its mission, but lacks specific class times or schedules.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Is there a published schedule of the class?</span>
+              <span class="one-liner">Page does not show an Adult Group Jiu Jitsu schedule.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>The page does not provide a published schedule for the &#39;Adult Group Jiu Jitsu&#39; class. It offers general information about the organization and its mission, but lacks specific class times or schedules.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="needs_review" data-search="does the published fee match the &#34;fee per session&#34; stated on the form? could not locate a published price for &#39;adult group jiu jitsu&#39; on the page to compare against the form&#39;s stated fee.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Does the published fee match the &#34;Fee per Session&#34; stated on the form?</span>
+              <span class="one-liner">Could not locate a published price for &#39;Adult Group Jiu Jitsu&#39; on the page to compare against the form&#39;s stated fee.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>Could not locate a published price for &#39;Adult Group Jiu Jitsu&#39; on the page to compare against the form&#39;s stated fee.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+                data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7">
+                <div class="thumb-crop"><img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+      </div>
+      <p id="no-results-msg" style="display:none; color: var(--muted);">No findings match your filters.</p>
+    </section>
+
+    <!-- ============ EVIDENCE ============ -->
+    <section class="panel" id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" hidden style="max-width: 1000px;">
+      <div class="toolbar-row">
+        <label for="evidence-filter" style="font-size:13px; color:var(--muted);">Filter by finding:</label>
+        <select id="evidence-filter" class="search-input" style="flex:0 0 auto;">
+          <option value="all">All evidence</option>
+          
+          <option value="open_to_public">Is the class open to and attended by the broader public?</option>
+          
+          <option value="published_fees">Does the class have published fees (a public price is visibl</option>
+          
+          <option value="fees_identical_opwdd">Are the fees identical for both OPWDD and non-OPWDD individu</option>
+          
+          <option value="subject_based">Is the class subject based (art, dance, martial arts, cookin</option>
+          
+          <option value="no_college_credit">Does the class provide college credits? (must be NO)</option>
+          
+          <option value="not_clinical">Is the class clinical in nature (therapy)? (must be NO)</option>
+          
+          <option value="published_schedule">Is there a published schedule of the class?</option>
+          
+          <option value="fee_match">Does the published fee match the &#34;Fee per Session&#34; stated on</option>
+          
+          <option value="appeal_evidence_provenance">Does the appeal justification rely on evidence not verifiabl</option>
+          
+          <option value="budget_approved">Are community classes currently approved in the budget?</option>
+          
+          <option value="community_inclusion">Does the class provide opportunity for community inclusion?</option>
+          
+          <option value="health_safety_fit">Does the class accommodate the individual&#39;s health and/or sa</option>
+          
+          <option value="independence_substitute">Does the class increase independence or substitute for human</option>
+          
+          <option value="exclusive_benefit">Is the class provided exclusively for the benefit of the par</option>
+          
+          <option value="dd_only_setting">Is the class given in a setting accessed only by people with</option>
+          
+          <option value="opwdd_staff_run">Is the class run by OPWDD or a provider-agency staff acting </option>
+          
+          <option value="opwdd_grounds">Is the class located on grounds where OPWDD services are nor</option>
+          
+          <option value="duplicates_medicaid_services">Does the class duplicate any Medicaid state plan or HCBS wai</option>
+          
+          <option value="duplicates_boe_services">Does the class duplicate services given through the Board of</option>
+          
+          <option value="reimbursed_directly">Is the class being reimbursed directly (W9 required)?</option>
+          
+        </select>
+      </div>
+      <div class="evidence-grid" id="evidence-grid">
+        
+        <div class="evidence-card" data-criteria="open_to_public,published_fees,fees_identical_opwdd,subject_based,no_college_credit,not_clinical,published_schedule,fee_match">
+          <div class="thumb js-open-evidence"
+            data-src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" data-label="Full page as reviewed" data-url="https://graciebarra.com"
+            data-time="2026-07-14 23:02 UTC" data-evidence-id="b98ed601bfbd98d7"
+            role="button" tabindex="0" aria-label="View evidence: Full page as reviewed">
+            <img src="evidence/whole-page-appeals-b98ed601bfbd98d7.png" alt="Full page as reviewed" loading="lazy">
+          </div>
+          <div class="meta">
+            <strong>Full page as reviewed</strong>
+            Full page · firecrawl<br>
+            JIU-JITSU FOR EVERYONE® | Gracie Barra<br>
+            https://graciebarra.com<br>
+            Captured 2026-07-14 23:02 UTC<br>
+            ID: b98ed601bfbd98d7
+          </div>
+        </div>
+        
+        <div class="evidence-card" data-criteria="open_to_public">
+          <div class="thumb js-open-evidence"
+            data-src="evidence/criterion-open_to_public-1062e1b06b4c9ecb.png" data-label="Evidence: open to the public" data-url="https://graciebarra.com"
+            data-time="2026-07-14 23:02 UTC" data-evidence-id="1062e1b06b4c9ecb"
+            role="button" tabindex="0" aria-label="View evidence: Evidence: open to the public">
+            <img src="evidence/criterion-open_to_public-1062e1b06b4c9ecb.png" alt="Evidence: open to the public" loading="lazy">
+          </div>
+          <div class="meta">
+            <strong>Evidence: open to the public</strong>
+            Targeted · firecrawl<br>
+            JIU-JITSU FOR EVERYONE® | Gracie Barra<br>
+            https://graciebarra.com<br>
+            Captured 2026-07-14 23:02 UTC<br>
+            ID: 1062e1b06b4c9ecb
+          </div>
+        </div>
+        
+        <div class="evidence-card" data-criteria="subject_based">
+          <div class="thumb js-open-evidence"
+            data-src="evidence/criterion-subject_based-03a0788a57e440af.png" data-label="Evidence: subject area / class description" data-url="https://graciebarra.com"
+            data-time="2026-07-14 23:02 UTC" data-evidence-id="03a0788a57e440af"
+            role="button" tabindex="0" aria-label="View evidence: Evidence: subject area / class description">
+            <img src="evidence/criterion-subject_based-03a0788a57e440af.png" alt="Evidence: subject area / class description" loading="lazy">
+          </div>
+          <div class="meta">
+            <strong>Evidence: subject area / class description</strong>
+            Targeted · firecrawl<br>
+            JIU-JITSU FOR EVERYONE® | Gracie Barra<br>
+            https://graciebarra.com<br>
+            Captured 2026-07-14 23:02 UTC<br>
+            ID: 03a0788a57e440af
+          </div>
+        </div>
+        
+        <div class="evidence-card" data-criteria="not_clinical">
+          <div class="thumb js-open-evidence"
+            data-src="evidence/criterion-not_clinical-72c07e82ed0309a6.png" data-label="Evidence: class description (non-clinical)" data-url="https://graciebarra.com"
+            data-time="2026-07-14 23:02 UTC" data-evidence-id="72c07e82ed0309a6"
+            role="button" tabindex="0" aria-label="View evidence: Evidence: class description (non-clinical)">
+            <img src="evidence/criterion-not_clinical-72c07e82ed0309a6.png" alt="Evidence: class description (non-clinical)" loading="lazy">
+          </div>
+          <div class="meta">
+            <strong>Evidence: class description (non-clinical)</strong>
+            Targeted · firecrawl<br>
+            JIU-JITSU FOR EVERYONE® | Gracie Barra<br>
+            https://graciebarra.com<br>
+            Captured 2026-07-14 23:02 UTC<br>
+            ID: 72c07e82ed0309a6
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- ============ INTERNAL CHECKS ============ -->
+    <section class="panel" id="panel-internal" role="tabpanel" aria-labelledby="tab-internal" hidden>
+      <div class="info-box">
+        These items can't be checked from a public website by design — they depend on internal
+        records (budget, Life Plan, provider screening documents) or reviewer judgment. They are
+        not failed checks; they're simply out of the website's reach.
+        
+      </div>
+      
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+      
+      <div class="card internal-group">
+        <h3>Appeal review</h3>
+        
+        <div class="internal-item">
+          <div class="q">Does the appeal justification rely on evidence not verifiable from the public website?</div>
+          <div class="explain">This tool only evaluates the provider&#39;s public website. Any document, rate sheet, or other material attached to or described in the appeal justification must be independently reviewed by the appeal committee — it is not, and cannot be, verified by this automated report. Compare the website findings above against the stated denial reason and the appellant&#39;s justification to decide whether the original denial should be reversed.
+</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Budget and funding</h3>
+        
+        <div class="internal-item">
+          <div class="q">Are community classes currently approved in the budget?</div>
+          <div class="explain">Requires the participant&#39;s approved IDGS/Self-Direction budget record showing community classes as an approved spending category.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Participant plan and outcomes</h3>
+        
+        <div class="internal-item">
+          <div class="q">Does the class provide opportunity for community inclusion?</div>
+          <div class="explain">Requires the participant&#39;s Life Plan narrative and reviewer judgment on whether this specific class supports a community-inclusion goal.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Does the class accommodate the individual&#39;s health and/or safety needs?</div>
+          <div class="explain">Requires participant-specific health/safety documentation from the Life Plan — not published anywhere on a public website.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Does the class increase independence or substitute for human assistance?</div>
+          <div class="explain">Requires the participant&#39;s Life Plan goals and reviewer judgment on how this class relates to them.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Provider and programme eligibility</h3>
+        
+        <div class="internal-item">
+          <div class="q">Is the class provided exclusively for the benefit of the participant? (must be NO)</div>
+          <div class="explain">Requires confirmation from the FI Coordinator/Broker that the class benefits the participant only, not shared with family members.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Is the class given in a setting accessed only by people with Developmental Disabilities? (must be NO)</div>
+          <div class="explain">A provider&#39;s public marketing page doesn&#39;t reliably disclose facility-access policy; requires reviewer follow-up with the provider or program documentation.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Is the class run by OPWDD or a provider-agency staff acting in their official capacities? (must be NO)</div>
+          <div class="explain">Requires internal knowledge of OPWDD-affiliated staff/providers — not determinable from the class&#39;s public website.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Is the class located on grounds where OPWDD services are normally provided? (must be NO)</div>
+          <div class="explain">Requires cross-referencing the agency&#39;s internal list of OPWDD-certified locations, which isn&#39;t public data.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Duplication of services</h3>
+        
+        <div class="internal-item">
+          <div class="q">Does the class duplicate any Medicaid state plan or HCBS waiver services?</div>
+          <div class="explain">Requires the participant&#39;s Medicaid/HCBS waiver service authorization records to check for overlap.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Does the class duplicate services given through the Board of Education for school-aged children?</div>
+          <div class="explain">Requires the participant&#39;s school/Board of Education IEP or service records.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Reimbursement and invoicing</h3>
+        
+        <div class="internal-item">
+          <div class="q">Is the class being reimbursed directly (W9 required)?</div>
+          <div class="explain">Requires the participant&#39;s chosen payment method and, if reimbursed directly, a completed W-9 on file.</div>
+          
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+    </section>
+
+    <!-- ============ REVIEW & EXPORT ============ -->
+    <section class="panel" id="panel-export" role="tabpanel" aria-labelledby="tab-export">
+      <div class="card">
+        <h2>Completion status</h2>
+        <div class="checklist-item"><span class="status-badge needs_review">In progress</span>
+          0 of 8 website findings reviewed</div>
+        <div class="checklist-item"><span class="status-badge needs_review">In progress</span>
+          0 of 12 internal checks completed</div>
+        <div class="checklist-item"><span class="status-badge internal">Overall</span>
+          0 of 20 total review items addressed</div>
+        <div class="checklist-item"><span class="status-badge found">0</span>
+          item(s) Not Confirmed</div>
+        <div class="checklist-item"><span class="status-badge needs_review">4</span>
+          item(s) Needs Review</div>
+        
+        <div class="checklist-item" style="margin-top:var(--s3);">Generated 2026-07-14 23:02 UTC</div>
+        <div class="checklist-item">Run reference: Sample-10---Appeal-Gracie-Barra-Jiu-Jitsu</div>
+      </div>
+
+      <div class="card">
+        <h2>Download</h2>
+        
+        <p style="font-size:14px; margin-top:0; color:var(--review-fg);">
+          20 item(s) still need reviewer attention —
+          exporting now produces a <strong>draft package</strong>. You can export again once review is complete.</p>
+        
+        <div class="btn-row">
+          <a class="btn" href="/applications/None/export/report.html" download>Download report (HTML)</a>
+          <a class="btn" href="/applications/None/export/report.json" download>Download structured data (JSON)</a>
+          <a class="btn primary" href="/applications/None/export/package.zip" download>
+            Download draft package (.zip)
+          </a>
+        </div>
+        <p style="color:var(--muted); font-size:13px; margin-top:12px; margin-bottom:0;">
+          The package includes the report, every evidence capture, a structured
+          report.json, and your reviewer overrides — everything needed for the audit file.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Start another review</h2>
+        <a class="btn" href="/">Upload another application →</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  Generated by the Pre-Approval Website-Verification Tool. This report assists a human
+  reviewer and does not itself approve or deny this request.
+</footer>
+
+<dialog id="lightbox" aria-label="Evidence viewer">
+  <div class="lb-head">
+    <span id="lightbox-caption"></span>
+    <div class="lb-controls">
+      <button type="button" id="lb-zoom-toggle">Fit to width</button>
+      <a id="lb-download" download>Download</a>
+      <button type="button" onclick="document.getElementById('lightbox').close()" aria-label="Close">✕ Close</button>
+    </div>
+  </div>
+  <div class="lb-body" id="lb-body"><img id="lightbox-img" src="" alt=""></div>
+  <div class="lb-foot">
+    <span id="lb-url"></span>
+    <span id="lb-time"></span>
+    <span id="lb-id"></span>
+  </div>
+</dialog>
+
+<script>
+  // ---------- Tabs ----------
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+  function activateTab(tabId, updateHash) {
+    tabs.forEach((t) => {
+      const selected = t.id === tabId;
+      t.setAttribute('aria-selected', String(selected));
+      t.tabIndex = selected ? 0 : -1;
+    });
+    panels.forEach((p) => { p.hidden = ('tab-' + p.id.replace('panel-', '')) !== tabId; });
+    if (updateHash) history.replaceState(null, '', '#' + tabId.replace('tab-', ''));
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => activateTab(tab.id, true));
+    tab.addEventListener('keydown', (e) => {
+      let next = null;
+      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+      if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+      if (next) { next.focus(); activateTab(next.id, true); e.preventDefault(); }
+    });
+  });
+  const initialHash = window.location.hash.replace('#', '');
+  const initialTab = document.getElementById('tab-' + initialHash);
+  activateTab(initialTab ? initialTab.id : 'tab-overview', false);
+
+  // ---------- Findings filter + search ----------
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const findingCards = document.querySelectorAll('#findings-list .finding-card');
+  const searchInput = document.getElementById('finding-search');
+  const noResultsMsg = document.getElementById('no-results-msg');
+  let activeFilter = 'all';
+
+  function applyFindingsFilter() {
+    const term = (searchInput.value || '').toLowerCase();
+    let visibleCount = 0;
+    findingCards.forEach((card) => {
+      const statusOk = activeFilter === 'all' || card.dataset.status === activeFilter;
+      const searchOk = !term || card.dataset.search.indexOf(term) !== -1;
+      const show = statusOk && searchOk;
+      card.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    noResultsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+      activeFilter = btn.dataset.filter;
+      applyFindingsFilter();
+    });
+  });
+  searchInput.addEventListener('input', applyFindingsFilter);
+
+  // ---------- Evidence filter ----------
+  const evidenceFilter = document.getElementById('evidence-filter');
+  const evidenceCards = document.querySelectorAll('#evidence-grid .evidence-card');
+  evidenceFilter.addEventListener('change', () => {
+    const val = evidenceFilter.value;
+    evidenceCards.forEach((card) => {
+      const criteria = card.dataset.criteria.split(',');
+      card.style.display = (val === 'all' || criteria.indexOf(val) !== -1) ? '' : 'none';
+    });
+  });
+
+  // ---------- Lightbox ----------
+  const lightbox = document.getElementById('lightbox');
+  const lbBody = document.getElementById('lb-body');
+  const lbZoomToggle = document.getElementById('lb-zoom-toggle');
+  let fitFull = false;
+
+  function openLightbox(src, caption, url, time, evidenceId) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption;
+    document.getElementById('lb-download').href = src;
+    document.getElementById('lb-url').textContent = url;
+    document.getElementById('lb-time').textContent = time;
+    document.getElementById('lb-id').textContent = 'ID: ' + evidenceId;
+    fitFull = false;
+    lbBody.classList.remove('fit-full');
+    lbZoomToggle.textContent = 'Full resolution';
+    lightbox.showModal();
+  }
+  lbZoomToggle.addEventListener('click', () => {
+    fitFull = !fitFull;
+    lbBody.classList.toggle('fit-full', fitFull);
+    lbZoomToggle.textContent = fitFull ? 'Fit to width' : 'Full resolution';
+  });
+  // Native <dialog> already provides Escape-to-close and focus containment
+  // while open; the page behind is inert for pointer/keyboard interaction.
+
+  // Event delegation (not inline onclick) — evidence labels/urls can contain
+  // quote characters that would otherwise break an inline HTML attribute.
+  function triggerFromEvidenceEl(el) {
+    openLightbox(el.dataset.src, el.dataset.label, el.dataset.url, el.dataset.time, el.dataset.evidenceId);
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('.js-open-evidence');
+    if (el) triggerFromEvidenceEl(el);
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('js-open-evidence')) {
+      e.preventDefault();
+      triggerFromEvidenceEl(e.target);
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Approval Website-Verification Tool</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+{% include "_style.html" %}
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>Pre-Approval Website-Verification Tool</h1>
+    <div class="sub">Upload a completed pre-approval application PDF to begin.</div>
+  </header>
+
+  <div class="card">
+    <form id="upload-form" method="post" action="/applications" enctype="multipart/form-data">
+      <label for="file-input">
+        <div class="dropzone" id="dropzone">
+          <div id="dz-text">Drag a PDF here, or click to choose a file</div>
+        </div>
+      </label>
+      <input id="file-input" type="file" name="file" accept="application/pdf" required>
+      <div style="text-align:center; margin-top:20px;">
+        <button class="btn" type="submit" id="submit-btn" disabled>Read Application →</button>
+      </div>
+    </form>
+  </div>
+
+  <div style="text-align:center; margin-top:8px;">
+    <a href="/manage-checklists" style="color:var(--muted); font-size:13.5px;">Manage checklist categories →</a>
+  </div>
+
+  <footer>
+    This tool assists a Pre-Approvals reviewer. It gathers public evidence and flags
+    findings — a human always makes the final approve/deny decision.
+  </footer>
+</div>
+<script>
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('file-input');
+  const submitBtn = document.getElementById('submit-btn');
+  const dzText = document.getElementById('dz-text');
+  const form = document.getElementById('upload-form');
+
+  function updateLabel() {
+    if (input.files.length) {
+      dzText.textContent = input.files[0].name;
+      submitBtn.disabled = false;
+    }
+  }
+  input.addEventListener('change', updateLabel);
+  ['dragenter', 'dragover'].forEach(evt =>
+    dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(evt =>
+    dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop', e => {
+    if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; updateLabel(); }
+  });
+  form.addEventListener('submit', () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Reading form…';
+  });
+</script>
+</body>
+</html>

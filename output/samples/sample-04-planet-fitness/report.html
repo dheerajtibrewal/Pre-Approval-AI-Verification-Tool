@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Approval Review — Planet Fitness</title>
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f6fa; --surface: #ffffff; --border: #dfe4ec; --text: #0f1f3d; --muted: #5b6b85; --accent: #1558d6; --accent-dark: #0f3fa3;
+    --found-bg: #eaf7ee; --found-fg: #1e7a42; --found-border: #bfe6cc;
+    --notfound-bg: #fdecec; --notfound-fg: #b42318; --notfound-border: #f6cbc7;
+    --review-bg: #fff6e0; --review-fg: #8a5b00; --review-border: #f0dca0;
+    --internal-bg: #eef1f6; --internal-fg: #475467; --internal-border: #dbe0e8;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow-sm: 0 1px 2px rgba(15, 31, 61, 0.05);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5; font-size: 15px;
+  }
+  a { color: var(--accent); }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Header ---------- */
+  .product-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
+    padding: var(--s3) var(--s6); background: var(--text); color: #fff;
+  }
+  .product-bar .product-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+  .product-bar .product-name .dot { width: 8px; height: 8px; border-radius: 50%; background: #5b9dff; display: inline-block; }
+  .product-bar .new-review {
+    font-size: 13px; font-weight: 600; color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,0.35);
+    padding: 6px 14px; border-radius: var(--radius-sm);
+  }
+  .product-bar .new-review:hover { background: rgba(255,255,255,0.1); }
+  .app-header {
+    padding: var(--s4) var(--s6); border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .app-header .eyebrow { color: var(--muted); font-size: 13px; }
+  .app-header h1 { font-size: 22px; font-weight: 700; margin: 4px 0 10px; letter-spacing: -0.01em; }
+  .app-header .meta-row { display: flex; flex-wrap: wrap; gap: var(--s4); color: var(--muted); font-size: 13px; align-items: center; }
+  .progress-pill {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .count-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: var(--s3); }
+  .count-pill {
+    font-size: 12.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  @media (max-width: 600px) {
+    .product-bar { padding: var(--s3) var(--s4); }
+    .app-header { padding: var(--s4); }
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
+  nav.tabs {
+    flex: 0 0 220px; position: sticky; top: 0; align-self: flex-start;
+    padding: var(--s5) var(--s3); display: flex; flex-direction: column; gap: 2px;
+  }
+  nav.tabs button {
+    text-align: left; border: none; background: none; color: var(--muted); padding: 10px 14px;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 14.5px; font-weight: 500;
+  }
+  nav.tabs button:hover { background: var(--surface); }
+  nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); font-weight: 700; }
+  main.content { flex: 1; min-width: 0; padding: var(--s5) var(--s6) var(--s7); }
+  .panel { max-width: 760px; }
+  .panel[hidden] { display: none; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: var(--s5); margin-bottom: var(--s4); box-shadow: var(--shadow-sm);
+  }
+  .card h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 0 0 var(--s4); font-weight: 700; }
+  .kv-grid { display: grid; grid-template-columns: 150px 1fr; gap: var(--s3) var(--s4); font-size: 14.5px; }
+  .kv-grid dt { color: var(--muted); } .kv-grid dd { margin: 0; word-break: break-word; }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; font-size: 12px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .status-badge.found { background: var(--found-bg); color: var(--found-fg); border-color: var(--found-border); }
+  .status-badge.not_found { background: var(--notfound-bg); color: var(--notfound-fg); border-color: var(--notfound-border); }
+  .status-badge.needs_review { background: var(--review-bg); color: var(--review-fg); border-color: var(--review-border); }
+  .status-badge.internal { background: var(--internal-bg); color: var(--internal-fg); border-color: var(--internal-border); }
+
+  .warn-box, .info-box {
+    background: var(--review-bg); color: var(--review-fg); border: 1px solid var(--review-border);
+    border-radius: var(--radius-sm); padding: var(--s3) var(--s4); font-size: 14px; margin-bottom: var(--s4);
+  }
+  .info-box { background: var(--internal-bg); color: var(--internal-fg); border-color: var(--internal-border); }
+
+  /* ---------- Overview ---------- */
+  .attention-list { list-style: none; margin: 0; padding: 0; }
+  .attention-list li {
+    display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) 0; border-top: 1px solid var(--border);
+  }
+  .attention-list li:first-child { border-top: none; }
+  .next-action { font-size: 15px; padding: var(--s4); background: var(--bg); border-radius: var(--radius-sm); }
+  details.how-to-read summary { cursor: pointer; font-size: 13.5px; color: var(--accent); }
+  .legend-item { display: flex; gap: 10px; padding: 8px 0; font-size: 13.5px; }
+
+  /* ---------- Findings ---------- */
+  .toolbar-row { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; margin-bottom: var(--s4); }
+  .filter-btn {
+    font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); padding: 6px 13px; border-radius: 999px; cursor: pointer;
+  }
+  .filter-btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .search-input {
+    flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text);
+  }
+  details.finding-card {
+    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--s3); background: var(--surface);
+  }
+  details.finding-card summary {
+    list-style: none; cursor: pointer; padding: var(--s4); display: flex; gap: var(--s3); align-items: center;
+  }
+  details.finding-card summary::-webkit-details-marker { display: none; }
+  details.finding-card summary .chev { margin-left: auto; color: var(--muted); transition: transform 0.15s; }
+  details.finding-card[open] summary .chev { transform: rotate(90deg); }
+  .summary-text { flex: 1; min-width: 0; }
+  .summary-text .q { font-weight: 600; font-size: 14.5px; }
+  .summary-text .one-liner { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .finding-body { padding: 0 var(--s4) var(--s4); border-top: 1px solid var(--border); margin-top: 0; }
+  .answer-compare { display: flex; gap: var(--s6); margin: var(--s4) 0; flex-wrap: wrap; }
+  .answer-compare div { font-size: 13.5px; } .answer-compare .label { color: var(--muted); display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .finding-quote {
+    font-size: 13.5px; font-style: italic; margin: var(--s3) 0; padding: var(--s3);
+    background: var(--bg); border-left: 3px solid var(--accent); border-radius: 6px;
+  }
+  .evidence-row { display: flex; gap: var(--s3); margin: var(--s3) 0; flex-wrap: wrap; }
+  .evidence-thumb {
+    display: block; width: 180px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; background: var(--bg); cursor: zoom-in; padding: 0; text-align: left; color: var(--text);
+  }
+  .evidence-thumb .thumb-crop { width: 100%; height: 110px; overflow: hidden; }
+  .evidence-thumb img { width: 100%; display: block; object-fit: cover; object-position: top; }
+  .evidence-thumb .cap { font-size: 11px; padding: 6px 8px; color: var(--muted); }
+  .overridden-tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--accent);
+    margin: var(--s2) 0; text-transform: uppercase; letter-spacing: 0.04em; }
+  details.edit-disclosure { margin-top: var(--s3); }
+  details.edit-disclosure summary { cursor: pointer; font-size: 12.5px; color: var(--accent); list-style: none; padding: 0; }
+  .edit-form { display: flex; gap: var(--s2); margin-top: var(--s2); flex-wrap: wrap; align-items: flex-start; }
+  .edit-form select, .edit-form textarea {
+    border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; background: var(--surface); color: var(--text);
+  }
+  .edit-form textarea { flex: 1; min-width: 200px; min-height: 40px; }
+  .btn-row { display: flex; gap: var(--s2); margin-top: var(--s3); flex-wrap: wrap; }
+  .btn, .edit-form button, .toolbar button {
+    font: inherit; font-weight: 600; font-size: 13px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none;
+    display: inline-block; min-height: 34px;
+  }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ---------- Evidence tab ---------- */
+  .evidence-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s4); }
+  .evidence-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .evidence-card .thumb { height: 140px; overflow: hidden; cursor: zoom-in; background: var(--bg); }
+  .evidence-card .thumb img { width: 100%; object-fit: cover; object-position: top; }
+  .evidence-card .meta { padding: var(--s3); font-size: 12px; color: var(--muted); }
+  .evidence-card .meta strong { color: var(--text); display: block; font-size: 13px; margin-bottom: 4px; }
+
+  /* ---------- Internal checks ---------- */
+  .internal-group { margin-bottom: var(--s5); }
+  .internal-group h3 { font-size: 14px; margin: 0 0 var(--s3); }
+  .internal-item { border-top: 1px solid var(--border); padding: var(--s3) 0; }
+  .internal-item:first-child { border-top: none; }
+  .internal-item .q { font-weight: 600; font-size: 14px; }
+  .internal-item .explain { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+
+  /* ---------- Export ---------- */
+  .checklist-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 14px; }
+
+  /* ---------- Lightbox ---------- */
+  #lightbox { border: none; border-radius: 16px; padding: 0; max-width: 94vw; max-height: 94vh; background: var(--surface); }
+  #lightbox::backdrop { background: rgba(0,0,0,0.65); }
+  #lightbox .lb-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
+    padding: var(--s3) var(--s4); border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  #lightbox .lb-controls { display: flex; gap: 6px; }
+  #lightbox .lb-controls button, #lightbox .lb-controls a {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px;
+    padding: 5px 10px; border-radius: 7px; cursor: pointer; text-decoration: none;
+  }
+  #lightbox .lb-body { overflow: auto; max-height: 76vh; text-align: center; background: var(--bg); }
+  #lightbox .lb-body img { display: inline-block; max-width: 100%; }
+  #lightbox .lb-body.fit-full img { max-width: none; }
+  #lightbox .lb-foot { padding: var(--s3) var(--s4); font-size: 12px; color: var(--muted); display: flex; gap: var(--s4); flex-wrap: wrap; }
+
+  footer.site-footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: var(--s6) 0; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    nav.tabs {
+      flex: 0 0 auto; flex-direction: row; position: sticky; top: 0; z-index: 5; width: 100%; overflow-x: auto;
+      background: var(--bg); border-bottom: 1px solid var(--border); padding: var(--s2) var(--s3);
+      gap: var(--s2);
+    }
+    nav.tabs button { flex: 0 0 auto; white-space: nowrap; }
+    main.content { padding: var(--s4); width: 100%; }
+    .kv-grid { grid-template-columns: 1fr; }
+    .kv-grid dt { font-weight: 600; }
+    .evidence-thumb { width: 100%; }
+    .answer-compare { gap: var(--s4); }
+  }
+
+  /* ---------- PDF / print ---------- */
+  .pdf-section-title { font-size: 19px; font-weight: 700; margin: 0 0 var(--s4); letter-spacing: -0.01em; break-after: avoid-page; page-break-after: avoid; }
+  /* Evidence/Internal Checks/Review & Export flow straight on from Findings
+     instead of each forcing its own fresh page — only Findings (Overview's
+     natural, usually-long next section) gets a hard page break. A forced
+     break on every section wasted most of a page whenever that section's
+     own content was short (see log.md Key Learnings). This border+spacing
+     stands in for the page-turn as the section boundary. */
+  .pdf-section-divider { margin-top: var(--s7); padding-top: var(--s5); border-top: 2px solid var(--border); }
+
+  /* ---------- PDF cover page ---------- */
+  /* A reviewer opening the PDF cold should see the whole picture — who,
+     what, and the verdict counts — before wading into 8+ individual
+     findings. Rendered only in pdf_mode; the interactive web view opens
+     straight to the Overview tab instead. */
+  /* The compact cover fits one page (verified incl. the longer appeal cover);
+     it breaks after itself so content starts fresh. The product bar is hidden
+     in pdf_mode (see below) so nothing strays onto a near-blank second page
+     between the cover and the first content section (Sample 10 QA). */
+  .pdf-cover { max-width: 760px; margin: 0 auto; padding: var(--s5) var(--s6) 0; break-after: page; page-break-after: always; }
+  /* Cover must fit on a single page (a near-empty second cover page reads as a
+     bug — see log.md). Everything on it is deliberately compact. */
+  .pdf-cover .card { padding: var(--s4); margin-bottom: var(--s3); box-shadow: none; }
+  .pdf-cover .card h2 { margin-bottom: var(--s2); }
+  .pdf-cover .kv-grid { gap: var(--s1) var(--s4); font-size: 13.5px; }
+  .pdf-summary-card { background: var(--surface); }
+  .pdf-cover-brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pdf-cover-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .pdf-cover-eyebrow { color: var(--muted); font-size: 13px; margin-top: var(--s5); }
+  .pdf-cover-title { font-size: 28px; font-weight: 700; margin: 6px 0 8px; letter-spacing: -0.02em; }
+  .pdf-cover-meta { color: var(--muted); font-size: 13px; margin-bottom: var(--s5); }
+  .pdf-cover-verdicts { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s3); margin-bottom: var(--s4); }
+  .pdf-cover-verdict {
+    border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s4) var(--s3); text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .pdf-cover-verdict .n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .pdf-cover-verdict .l { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .pdf-cover-verdict.found { background: var(--found-bg); border-color: var(--found-border); }
+  .pdf-cover-verdict.found .n { color: var(--found-fg); }
+  .pdf-cover-verdict.not_found { background: var(--notfound-bg); border-color: var(--notfound-border); }
+  .pdf-cover-verdict.not_found .n { color: var(--notfound-fg); }
+  .pdf-cover-verdict.needs_review { background: var(--review-bg); border-color: var(--review-border); }
+  .pdf-cover-verdict.needs_review .n { color: var(--review-fg); }
+  .pdf-cover-verdict.internal { background: var(--internal-bg); border-color: var(--internal-border); }
+  .pdf-cover-verdict.internal .n { color: var(--internal-fg); }
+  .pdf-cover-summary { font-size: 14.5px; line-height: 1.6; }
+  .pdf-cover-footnote { color: var(--muted); font-size: 12.5px; margin-top: var(--s5); text-align: center; }
+
+  @media print {
+    body { background: #fff; }
+    .product-bar .new-review { display: none; }
+    .app-header { border-bottom: 2px solid var(--text); }
+    .layout { display: block; }
+    main.content { padding: var(--s4) 0; width: 100%; }
+    .panel { max-width: 100%; }
+    .panel.pdf-page-break { break-before: page; }
+    /* A printed audit document can sit denser than the screen view's
+       generous whitespace without feeling cramped — the screen layout's
+       spacing is tuned for comfortable on-screen reading, not for fitting
+       the maximum useful content per page. */
+    .card { padding: var(--s4); margin-bottom: var(--s3); box-shadow: none; break-inside: avoid-page; page-break-inside: avoid; }
+    /* Reference/legend cards may flow across a page break so they fill the
+       remaining space instead of jumping whole to a fresh, mostly-blank page. */
+    .card.pdf-allow-break { break-inside: auto; page-break-inside: auto; }
+    /* ...but an individual legend ROW must never be split by a page boundary:
+       Chromium's print engine corrupts letter-spacing on a line cut mid-height
+       (it rendered "H umanConfirmation" / "Thiscan'tbechecked..."). Keep each
+       row and the summary atomic so a break only ever lands between rows. */
+    .card.pdf-allow-break .legend-item,
+    .card.pdf-allow-break summary { break-inside: avoid; page-break-inside: avoid; }
+    .evidence-card, .internal-item { box-shadow: none; break-inside: avoid-page; page-break-inside: avoid; }
+    details.finding-card { margin-bottom: var(--s2); }
+    .finding-body { padding: 0 var(--s3) var(--s3); }
+    .answer-compare { margin: var(--s3) 0; gap: var(--s5); }
+    .finding-quote { margin: var(--s3) 0; }
+    .evidence-thumb .thumb-crop { height: 90px; }
+    /* A short trailing block needs at least 2 lines of remaining page space
+       or the browser's orphan/widow rule bumps it whole onto a fresh page —
+       a smaller footer needs less room to fit, so this is less likely (not
+       guaranteed) to land alone on a near-blank final page. */
+    /* Keep the footer atomic: a page break landing mid-footer produced a
+       garbled, half-overlapping duplicate of the disclaimer line (Sample 07
+       QA). Never let it fragment across a page boundary. */
+    footer.site-footer { padding: var(--s3) 0; font-size: 11.5px; break-inside: avoid-page; page-break-inside: avoid; }
+    /* Open finding-cards can be taller than one page (embedded full-size
+       evidence images), so the card itself must be allowed to paginate —
+       but its summary header row is a small flex container, and Chromium's
+       print engine will otherwise fragment individual flex children mid-row
+       at a page boundary, leaving a stray orphaned chevron/badge on one
+       page and the rest of the row on the next. Keep the header atomic and
+       never let a page break separate it from the start of its content. */
+    .finding-card summary { break-inside: avoid-page; page-break-inside: avoid; break-after: avoid-page; page-break-after: avoid; }
+    .answer-compare, .finding-quote, .evidence-thumb, .overridden-tag { break-inside: avoid-page; page-break-inside: avoid; }
+    a { color: var(--text); text-decoration: underline; }
+  }
+</style>
+</head>
+<body>
+
+
+
+
+<div class="product-bar">
+  <span class="product-name"><span class="dot" aria-hidden="true"></span> Pre-Approval Verification</span>
+  
+</div>
+
+
+
+<header class="app-header">
+  <div class="eyebrow">Health Club / Organizational Membership · Website Verification Report</div>
+  <h1>Classic Gym Membership — Planet Fitness</h1>
+  <div class="meta-row">
+    <span>Run 26d72b762b</span>
+    <span>Generated Jul 15, 2026 15:51 UTC</span>
+    
+  </div>
+  <div class="count-badges">
+    <span class="count-pill">✓ 0 Confirmed</span>
+    <span class="count-pill">✕ 0 Not Confirmed</span>
+    <span class="count-pill">? 3 Needs Review</span>
+    <span class="count-pill">— 5 Human Confirmation</span>
+  </div>
+</header>
+
+
+<div class="layout">
+  
+  <nav class="tabs" role="tablist" aria-label="Report sections">
+    <button role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" data-tab="overview">Overview</button>
+    <button role="tab" id="tab-findings" aria-controls="panel-findings" aria-selected="false" tabindex="-1" data-tab="findings">Findings</button>
+    <button role="tab" id="tab-evidence" aria-controls="panel-evidence" aria-selected="false" tabindex="-1" data-tab="evidence">Evidence</button>
+    <button role="tab" id="tab-internal" aria-controls="panel-internal" aria-selected="false" tabindex="-1" data-tab="internal">Internal Checks</button>
+    <button role="tab" id="tab-export" aria-controls="panel-export" aria-selected="false" tabindex="-1" data-tab="export">Review &amp; Export</button>
+  </nav>
+  
+
+  <main class="content">
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+
+      
+
+      
+      
+      
+      
+
+      
+      <div class="card">
+        <h2>Summary</h2>
+        <p style="margin:0;">For Planet Fitness&#39;s Classic Gym Membership, the website does not explicitly state whether it is open to the general public, as needed for full confirmation of this criterion. Additionally, membership fees are not directly published on the main page, requiring a further check of individual club links to access this information. The exact membership fee comparison to the form is also inconclusive, as the site lacks a universally applicable price and depends on a specific location, which was not provided on the form. These points necessitate further human review, and internal checks remain for final confirmation.</p>
+      </div>
+      
+
+      <div class="card">
+        <h2>Request at a glance</h2>
+        <dl class="kv-grid">
+          <dt>Participant</dt><dd>Rivka S.</dd>
+          <dt>Provider</dt><dd>Planet Fitness</dd>
+          <dt>Requested item</dt><dd>Classic Gym Membership</dd>
+          <dt>Category</dt><dd>Health Club / Organizational Membership</dd>
+          <dt>Source website</dt>
+          <dd><a href="https://www.planetfitness.com/gyms" target="_blank" rel="noopener">www.planetfitness.com</a></dd>
+          <dt>Submitted fee</dt><dd>$15</dd>
+        </dl>
+      </div>
+      
+
+      
+      
+
+      
+      
+      <div class="card">
+        <h2>Fee comparison</h2>
+        <div class="status-badge needs_review">Needs Review</div>
+        <p style="margin-bottom:0;">Could not locate a single published price for &#39;Classic Gym Membership&#39; on the page to compare against the form&#39;s stated fee. This provider&#39;s price depends on a specific club location, which the application form doesn&#39;t specify — so an exact match can&#39;t be confirmed automatically. A reviewer should confirm the correct price for a specific club location.</p>
+      </div>
+      
+
+      
+      <div class="card">
+        <h2>What this report tells you</h2>
+        <div class="next-action">
+          <strong>0 of 3</strong> website-verifiable
+          items were confirmed on the provider's public page.
+          
+          <strong>3</strong> items
+          need attention before this can move forward.
+          
+        </div>
+
+        
+        <ul class="attention-list" style="margin-top:16px;">
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Is the organization open to the public and not a private/invitation-only club? — The page does not contain clear, explicit language stating that Planet Fitness is open to the general public or that it is not a private or invitation-only club. While it offers membership sign-ups and shows multiple club locations, it does not explicitly confirm openness to the general public, which is necessary to confidently affirm this criterion.</span>
+          </li>
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Does the organization publish membership fees? — The captured page text does not include specific information about membership fees for Planet Fitness. While it has links to &#39;Review Plans&#39; for each club, the page itself does not publish membership fees directly. A visit to these links might be necessary to confirm fee publication, hence it requires further review.</span>
+          </li>
+          
+          <li>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span>Does the published membership fee match the amount stated on the form? — Could not locate a single published price for &#39;Classic Gym Membership&#39; on the page to compare against the form&#39;s stated fee. This provider&#39;s price depends on a specific club location, which the application form doesn&#39;t specify — so an exact match can&#39;t be confirmed automatically. A reviewer should confirm the correct price for a specific club location.</span>
+          </li>
+          
+        </ul>
+        
+      </div>
+      
+
+      <div class="card">
+        <details class="how-to-read">
+          <summary>How to read this report</summary>
+          <div class="legend-item"><span class="status-badge found">Confirmed</span> The provider's public website clearly supports this finding.</div>
+          <div class="legend-item"><span class="status-badge not_found">Not Confirmed</span> The public website contradicts or does not show this.</div>
+          <div class="legend-item"><span class="status-badge needs_review">Needs Review</span> The public website doesn't provide enough information to confirm it either way.</div>
+          <div class="legend-item"><span class="status-badge internal">Human Confirmation</span> This can't be checked from a public website — it needs internal records or reviewer judgment.</div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FINDINGS ============ -->
+    <section class="panel" id="panel-findings" role="tabpanel" aria-labelledby="tab-findings" hidden>
+      
+      <div class="toolbar-row">
+        <button class="filter-btn" aria-pressed="true" data-filter="all">All</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="found">Confirmed</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="not_found">Not Confirmed</button>
+        <button class="filter-btn" aria-pressed="false" data-filter="needs_review">Needs Review</button>
+        <label for="finding-search" class="visually-hidden" style="position:absolute; left:-9999px;">Search findings</label>
+        <input class="search-input" id="finding-search" type="search" placeholder="Search findings…">
+      </div>
+      
+
+      
+
+      <div id="findings-list">
+      
+        <details class="finding-card" data-status="needs_review" data-search="is the organization open to the public and not a private/invitation-only club? the page does not contain clear, explicit language stating that planet fitness is open to the general public or that it is not a private or invitation-only club. while it offers membership sign-ups and shows multiple club locations, it does not explicitly confirm openness to the general public, which is necessary to confidently affirm this criterion.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Is the organization open to the public and not a private/invitation-only club?</span>
+              <span class="one-liner">Page doesn&#39;t explicitly state public access; needs review.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Yes</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>The page does not contain clear, explicit language stating that Planet Fitness is open to the general public or that it is not a private or invitation-only club. While it offers membership sign-ups and shows multiple club locations, it does not explicitly confirm openness to the general public, which is necessary to confidently affirm this criterion.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-memberships-23bca85a8aa01e64.png" data-label="Full page as reviewed" data-url="https://www.planetfitness.com/gyms"
+                data-time="2026-07-15 15:50 UTC" data-evidence-id="23bca85a8aa01e64">
+                <div class="thumb-crop"><img src="evidence/whole-page-memberships-23bca85a8aa01e64.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="needs_review" data-search="does the organization publish membership fees? the captured page text does not include specific information about membership fees for planet fitness. while it has links to &#39;review plans&#39; for each club, the page itself does not publish membership fees directly. a visit to these links might be necessary to confirm fee publication, hence it requires further review.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Does the organization publish membership fees?</span>
+              <span class="one-liner">Page text does not mention membership fees.</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>The captured page text does not include specific information about membership fees for Planet Fitness. While it has links to &#39;Review Plans&#39; for each club, the page itself does not publish membership fees directly. A visit to these links might be necessary to confirm fee publication, hence it requires further review.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-memberships-23bca85a8aa01e64.png" data-label="Full page as reviewed" data-url="https://www.planetfitness.com/gyms"
+                data-time="2026-07-15 15:50 UTC" data-evidence-id="23bca85a8aa01e64">
+                <div class="thumb-crop"><img src="evidence/whole-page-memberships-23bca85a8aa01e64.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+        <details class="finding-card" data-status="needs_review" data-search="does the published membership fee match the amount stated on the form? could not locate a single published price for &#39;classic gym membership&#39; on the page to compare against the form&#39;s stated fee. this provider&#39;s price depends on a specific club location, which the application form doesn&#39;t specify — so an exact match can&#39;t be confirmed automatically. a reviewer should confirm the correct price for a specific club location.">
+          <summary>
+            <span class="status-badge needs_review">Needs Review</span>
+            <span class="summary-text">
+              <span class="q">Does the published membership fee match the amount stated on the form?</span>
+              <span class="one-liner">Could not locate a single published price for &#39;Classic Gym Membership&#39; on the page to compare against the form&#39;s stated fee. This provide…</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="finding-body">
+            <div class="answer-compare">
+              <div><span class="label">Application answer</span>
+                Not indicated</div>
+              <div><span class="label">Website verification</span>
+                <span class="status-badge needs_review">Needs Review</span></div>
+            </div>
+            <div>Could not locate a single published price for &#39;Classic Gym Membership&#39; on the page to compare against the form&#39;s stated fee. This provider&#39;s price depends on a specific club location, which the application form doesn&#39;t specify — so an exact match can&#39;t be confirmed automatically. A reviewer should confirm the correct price for a specific club location.</div>
+            
+
+            
+            <div class="evidence-row">
+              
+              <button type="button" class="evidence-thumb js-open-evidence"
+                data-src="evidence/whole-page-memberships-23bca85a8aa01e64.png" data-label="Full page as reviewed" data-url="https://www.planetfitness.com/gyms"
+                data-time="2026-07-15 15:50 UTC" data-evidence-id="23bca85a8aa01e64">
+                <div class="thumb-crop"><img src="evidence/whole-page-memberships-23bca85a8aa01e64.png" alt="Full page as reviewed" loading="lazy"></div>
+                <div class="cap">Full page as reviewed</div>
+              </button>
+              
+            </div>
+            
+
+            
+            
+
+            
+          </div>
+        </details>
+      
+      </div>
+      <p id="no-results-msg" style="display:none; color: var(--muted);">No findings match your filters.</p>
+    </section>
+
+    <!-- ============ EVIDENCE ============ -->
+    <section class="panel" id="panel-evidence" role="tabpanel" aria-labelledby="tab-evidence" hidden style="max-width: 1000px;">
+      
+      <div class="toolbar-row">
+        <label for="evidence-filter" style="font-size:13px; color:var(--muted);">Filter by finding:</label>
+        <select id="evidence-filter" class="search-input" style="flex:0 0 auto;">
+          <option value="all">All evidence</option>
+          
+          <option value="open_to_public">Is the organization open to the public and not a private/inv</option>
+          
+          <option value="published_fees">Does the organization publish membership fees?</option>
+          
+          <option value="fee_match">Does the published membership fee match the amount stated on</option>
+          
+          <option value="budget_approved">Is Health-club/Organizational Membership currently approved </option>
+          
+          <option value="community_inclusion">Does the membership provide opportunity for community inclus</option>
+          
+          <option value="health_safety_fit">Does the membership accommodate the individual&#39;s health and/</option>
+          
+          <option value="independence_substitute">Does the membership increase independence or substitute for </option>
+          
+          <option value="exclusive_benefit">Is the membership provided exclusively toward the benefit of</option>
+          
+        </select>
+      </div>
+      
+      <div class="evidence-grid" id="evidence-grid">
+        
+        <div class="evidence-card" data-criteria="open_to_public,published_fees,fee_match">
+          <div class="thumb js-open-evidence"
+            data-src="evidence/whole-page-memberships-23bca85a8aa01e64.png" data-label="Full page as reviewed" data-url="https://www.planetfitness.com/gyms"
+            data-time="2026-07-15 15:50 UTC" data-evidence-id="23bca85a8aa01e64"
+            role="button" tabindex="0" aria-label="View evidence: Full page as reviewed">
+            <img src="evidence/whole-page-memberships-23bca85a8aa01e64.png" alt="Full page as reviewed" loading="lazy">
+          </div>
+          <div class="meta">
+            <strong>Full page as reviewed</strong>
+            Full page · firecrawl<br>
+            Gyms Near Me | Fitness Centers Near Me | Planet Fitness<br>
+            https://www.planetfitness.com/gyms<br>
+            Captured 2026-07-15 15:50 UTC<br>
+            ID: 23bca85a8aa01e64
+          </div>
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- ============ INTERNAL CHECKS ============ -->
+    <section class="panel" id="panel-internal" role="tabpanel" aria-labelledby="tab-internal" hidden>
+      
+      <div class="info-box">
+        These items can't be checked from a public website by design — they depend on internal
+        records (budget, Life Plan, provider screening documents) or reviewer judgment. They are
+        not failed checks; they're simply out of the website's reach.
+        
+      </div>
+      
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+        
+        
+      
+      
+      <div class="card internal-group">
+        <h3>Budget and funding</h3>
+        
+        <div class="internal-item">
+          <div class="q">Is Health-club/Organizational Membership currently approved in the budget?</div>
+          <div class="explain">Requires the participant&#39;s approved Self-Direction budget record showing this membership category as approved.</div>
+          <div class="explain">Application answer: Yes</div>
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Participant plan and outcomes</h3>
+        
+        <div class="internal-item">
+          <div class="q">Does the membership provide opportunity for community inclusion?</div>
+          <div class="explain">Requires the participant&#39;s Life Plan narrative and reviewer judgment on whether this membership supports a community-inclusion goal.</div>
+          <div class="explain">Application answer: Yes</div>
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Does the membership accommodate the individual&#39;s health and/or safety needs?</div>
+          <div class="explain">Requires participant-specific health/safety documentation from the Life Plan — not published on a public website.</div>
+          <div class="explain">Application answer: Yes</div>
+
+          
+          
+
+          
+        </div>
+        
+        <div class="internal-item">
+          <div class="q">Does the membership increase independence or substitute for human assistance?</div>
+          <div class="explain">Requires the participant&#39;s Life Plan goals and reviewer judgment on how this membership relates to them.</div>
+          <div class="explain">Application answer: Yes</div>
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+      <div class="card internal-group">
+        <h3>Provider and programme eligibility</h3>
+        
+        <div class="internal-item">
+          <div class="q">Is the membership provided exclusively toward the benefit of the participant? (not family, must be YES)</div>
+          <div class="explain">Requires confirmation from the FI Coordinator/Broker that this is not a family or dual membership — IDGS funds do not cover shared memberships.</div>
+          <div class="explain">Application answer: Yes</div>
+
+          
+          
+
+          
+        </div>
+        
+      </div>
+      
+    </section>
+
+    <!-- ============ REVIEW & EXPORT ============ -->
+    <section class="panel" id="panel-export" role="tabpanel" aria-labelledby="tab-export" hidden>
+      
+      <div class="card">
+        <h2>Completion status</h2>
+        <div class="checklist-item"><span class="status-badge needs_review">In progress</span>
+          0 of 3 website findings reviewed</div>
+        <div class="checklist-item"><span class="status-badge needs_review">In progress</span>
+          0 of 5 internal checks completed</div>
+        <div class="checklist-item"><span class="status-badge internal">Overall</span>
+          0 of 8 total review items addressed</div>
+        <div class="checklist-item"><span class="status-badge found">0</span>
+          item(s) Not Confirmed</div>
+        <div class="checklist-item"><span class="status-badge needs_review">3</span>
+          item(s) Needs Review</div>
+        
+        <div class="checklist-item" style="margin-top:var(--s3);">Generated 2026-07-15 15:51 UTC</div>
+        <div class="checklist-item">Run reference: 26d72b762b</div>
+      </div>
+
+      
+    </section>
+
+  </main>
+</div>
+
+<footer class="site-footer">
+  Generated by the Pre-Approval Website-Verification Tool. This report assists a human
+  reviewer and does not itself approve or deny this request.
+</footer>
+
+<dialog id="lightbox" aria-label="Evidence viewer">
+  <div class="lb-head">
+    <span id="lightbox-caption"></span>
+    <div class="lb-controls">
+      <button type="button" id="lb-zoom-toggle">Fit to width</button>
+      <a id="lb-download" download>Download</a>
+      <button type="button" onclick="document.getElementById('lightbox').close()" aria-label="Close">✕ Close</button>
+    </div>
+  </div>
+  <div class="lb-body" id="lb-body"><img id="lightbox-img" src="" alt=""></div>
+  <div class="lb-foot">
+    <span id="lb-url"></span>
+    <span id="lb-time"></span>
+    <span id="lb-id"></span>
+  </div>
+</dialog>
+
+
+<script>
+  // ---------- Tabs ----------
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+  function activateTab(tabId, updateHash) {
+    tabs.forEach((t) => {
+      const selected = t.id === tabId;
+      t.setAttribute('aria-selected', String(selected));
+      t.tabIndex = selected ? 0 : -1;
+    });
+    panels.forEach((p) => { p.hidden = ('tab-' + p.id.replace('panel-', '')) !== tabId; });
+    if (updateHash) history.replaceState(null, '', '#' + tabId.replace('tab-', ''));
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => activateTab(tab.id, true));
+    tab.addEventListener('keydown', (e) => {
+      let next = null;
+      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+      if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+      if (next) { next.focus(); activateTab(next.id, true); e.preventDefault(); }
+    });
+  });
+  const initialHash = window.location.hash.replace('#', '');
+  const initialTab = document.getElementById('tab-' + initialHash);
+  activateTab(initialTab ? initialTab.id : 'tab-overview', false);
+
+  // ---------- Findings filter + search ----------
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const findingCards = document.querySelectorAll('#findings-list .finding-card');
+  const searchInput = document.getElementById('finding-search');
+  const noResultsMsg = document.getElementById('no-results-msg');
+  let activeFilter = 'all';
+
+  function applyFindingsFilter() {
+    const term = (searchInput.value || '').toLowerCase();
+    let visibleCount = 0;
+    findingCards.forEach((card) => {
+      const statusOk = activeFilter === 'all' || card.dataset.status === activeFilter;
+      const searchOk = !term || card.dataset.search.indexOf(term) !== -1;
+      const show = statusOk && searchOk;
+      card.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    noResultsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+      activeFilter = btn.dataset.filter;
+      applyFindingsFilter();
+    });
+  });
+  searchInput.addEventListener('input', applyFindingsFilter);
+
+  // ---------- Evidence filter ----------
+  const evidenceFilter = document.getElementById('evidence-filter');
+  const evidenceCards = document.querySelectorAll('#evidence-grid .evidence-card');
+  evidenceFilter.addEventListener('change', () => {
+    const val = evidenceFilter.value;
+    evidenceCards.forEach((card) => {
+      const criteria = card.dataset.criteria.split(',');
+      card.style.display = (val === 'all' || criteria.indexOf(val) !== -1) ? '' : 'none';
+    });
+  });
+
+  // ---------- Lightbox ----------
+  const lightbox = document.getElementById('lightbox');
+  const lbBody = document.getElementById('lb-body');
+  const lbZoomToggle = document.getElementById('lb-zoom-toggle');
+  let fitFull = false;
+
+  function openLightbox(src, caption, url, time, evidenceId) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption;
+    document.getElementById('lb-download').href = src;
+    document.getElementById('lb-url').textContent = url;
+    document.getElementById('lb-time').textContent = time;
+    document.getElementById('lb-id').textContent = 'ID: ' + evidenceId;
+    fitFull = false;
+    lbBody.classList.remove('fit-full');
+    lbZoomToggle.textContent = 'Full resolution';
+    lightbox.showModal();
+  }
+  lbZoomToggle.addEventListener('click', () => {
+    fitFull = !fitFull;
+    lbBody.classList.toggle('fit-full', fitFull);
+    lbZoomToggle.textContent = fitFull ? 'Fit to width' : 'Full resolution';
+  });
+  // Native <dialog> already provides Escape-to-close and focus containment
+  // while open; the page behind is inert for pointer/keyboard interaction.
+
+  // Event delegation (not inline onclick) — evidence labels/urls can contain
+  // quote characters that would otherwise break an inline HTML attribute.
+  function triggerFromEvidenceEl(el) {
+    openLightbox(el.dataset.src, el.dataset.label, el.dataset.url, el.dataset.time, el.dataset.evidenceId);
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('.js-open-evidence');
+    if (el) triggerFromEvidenceEl(el);
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('js-open-evidence')) {
+      e.preventDefault();
+      triggerFromEvidenceEl(e.target);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "source_pdf": "Sample-05---Membership-Brooklyn-Museum.pdf",
+  "category_id": "memberships",
+  "generated_at": "2026-07-14T22:58:43.734912+00:00",
+  "summary_counts": {
+    "found": 0,
+    "not_found": 0,
+    "needs_review": 3
+  },
+  "internal_criteria_count": 5,
+  "fetch_error": null,
+  "low_confidence_fields": []
+}
